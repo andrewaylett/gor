@@ -35,7 +35,7 @@ mod test {
     use crate::{try_static_eval, Expression, Value};
 
     #[test]
-    #[should_panic(expected = "not yet implemented")]
+    #[should_panic(expected = "not implemented")]
     fn static_eval_int_addition() {
         let parse = parse_expression("1+2").unwrap();
         let exp: Expression = parse.into();
