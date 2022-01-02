@@ -2,6 +2,7 @@ use anyhow::{anyhow, Context, Result};
 use pest::iterators::{Pair, Pairs};
 
 use crate::parse::{Rule, PRECEDENCE};
+use crate::Value;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinOp {
@@ -11,6 +12,22 @@ pub enum BinOp {
     Div,
     Pow,
     Modulo,
+}
+
+impl BinOp {
+    pub(crate) fn static_apply(&self, l: Value, r: Value) -> Result<Value> {
+        let l = l.as_int()?;
+        let r = r.as_int()?;
+        let v = match self {
+            BinOp::Add => l + r,
+            BinOp::Sub => l - r,
+            BinOp::Mul => l * r,
+            BinOp::Div => l / r,
+            BinOp::Pow => l ^ r,
+            BinOp::Modulo => l % r,
+        };
+        Ok(Value::Int(v))
+    }
 }
 
 impl TryFrom<Rule> for BinOp {

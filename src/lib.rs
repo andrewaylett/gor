@@ -1,6 +1,6 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 
-use crate::ast::{BinOp, Expression};
+use crate::ast::Expression;
 use crate::eval::Value;
 
 mod ast;
@@ -29,12 +29,9 @@ mod eval {
 
 pub fn try_static_eval(exp: &Expression) -> Result<Value> {
     Ok(match exp {
-        Expression::BinOp { left, op, right } => match op {
-            BinOp::Add => {
-                Value::Int(try_static_eval(left)?.as_int()? + try_static_eval(right)?.as_int()?)
-            }
-            op => return Err(anyhow!("No implementation for {:?} in {:?}", op, exp)),
-        },
+        Expression::BinOp { left, op, right } => {
+            op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?
+        }
         Expression::String(_) => {
             todo!()
         }

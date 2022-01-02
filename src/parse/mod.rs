@@ -30,6 +30,7 @@ pub(crate) mod test {
 
     use crate::parse::parse;
     use crate::parse::Rule;
+    use crate::{try_static_eval, Expression, Value};
 
     pub fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
         Ok(parse(Rule::expression, input)?)
@@ -38,6 +39,15 @@ pub(crate) mod test {
     #[test]
     fn parse_int_add() -> Result<()> {
         parse(Rule::expression, "1+2")?;
+        Ok(())
+    }
+
+    #[test]
+    fn multiply_higher_precedence_than_add() -> Result<()> {
+        let p = parse_expression("2+3*4")?;
+        let e = Expression::try_from(p)?;
+        let r = try_static_eval(&e)?;
+        assert_eq!(Value::Int(14), r, "Expression was {:?}", &e);
         Ok(())
     }
 }
