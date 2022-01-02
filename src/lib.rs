@@ -1,45 +1,66 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 
-use crate::ast::Expression;
+use crate::ast::{BinOp, Expression};
 use crate::eval::Value;
 
+mod ast;
 pub mod parse;
 
-mod ast {
-    use pest::iterators::Pairs;
+mod eval {
+    use anyhow::anyhow;
+    use anyhow::Result;
 
-    #[derive(Debug)]
-    pub struct Expression {}
+    #[derive(Debug, PartialEq)]
+    pub enum Value {
+        Int(i64),
+        String(String),
+    }
 
-    impl From<Pairs<'_, crate::parse::Rule>> for Expression {
-        fn from(_: Pairs<crate::parse::Rule>) -> Self {
-            unimplemented!()
+    impl Value {
+        pub fn as_int(&self) -> Result<i64> {
+            if let Value::Int(n) = self {
+                Ok(*n)
+            } else {
+                Err(anyhow!("Not an integer"))
+            }
         }
     }
 }
 
-mod eval {
-    #[derive(Debug, PartialEq)]
-    pub enum Value {
-        Int(i64),
-    }
-}
-
 pub fn try_static_eval(exp: &Expression) -> Result<Value> {
-    unimplemented!("{:?}", exp)
+    Ok(match exp {
+        Expression::BinOp { left, op, right } => match op {
+            BinOp::Add => {
+                Value::Int(try_static_eval(left)?.as_int()? + try_static_eval(right)?.as_int()?)
+            }
+            op => return Err(anyhow!("No implementation for {:?} in {:?}", op, exp)),
+        },
+        Expression::String(_) => {
+            todo!()
+        }
+        Expression::Number(n) => Value::Int(*n),
+        Expression::Name(_) => {
+            todo!()
+        }
+        Expression::UniOp { .. } => {
+            todo!()
+        }
+    })
 }
 
 #[cfg(test)]
 mod test {
+    use anyhow::Result;
+
     use crate::parse::test::parse_expression;
     use crate::{try_static_eval, Expression, Value};
 
     #[test]
-    #[should_panic(expected = "not implemented")]
-    fn static_eval_int_addition() {
-        let parse = parse_expression("1+2").unwrap();
-        let exp: Expression = parse.into();
-        let result = try_static_eval(&exp).unwrap();
+    fn static_eval_int_addition() -> Result<()> {
+        let parse = parse_expression("1+2")?;
+        let exp: Expression = parse.try_into()?;
+        let result = try_static_eval(&exp)?;
         assert_eq!(result, Value::Int(3));
+        Ok(())
     }
 }

@@ -36,9 +36,16 @@ number = @{
     NUMBER+ ~ ("." ~ NUMBER*)?
 }
 
-op = {
-    "+" | "-" | "*" | "/" | "^" | "%"
+op = _{
+    add | sub | mul | div | pow | modulo
 }
+
+add = {"+"}
+sub = {"-"}
+mul = {"*"}
+div = {"/"}
+pow = {"^"}
+modulo = {"%"}
 
 uniop = {
     "-" ~ expression

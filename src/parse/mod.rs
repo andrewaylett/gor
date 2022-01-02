@@ -1,5 +1,7 @@
+use lazy_static::lazy_static;
 use pest::error::Error;
 use pest::iterators::Pairs;
+use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
 use pest_derive::Parser;
 
@@ -9,6 +11,16 @@ pub struct ModuleParser;
 
 pub fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     ModuleParser::parse(rule, input)
+}
+
+lazy_static! {
+    pub static ref PRECEDENCE: PrecClimber<Rule> = PrecClimber::new(vec![
+        Operator::new(Rule::add, Assoc::Left) | Operator::new(Rule::sub, Assoc::Left),
+        Operator::new(Rule::mul, Assoc::Left)
+            | Operator::new(Rule::div, Assoc::Left)
+            | Operator::new(Rule::modulo, Assoc::Left),
+        Operator::new(Rule::pow, Assoc::Right)
+    ]);
 }
 
 #[cfg(test)]
