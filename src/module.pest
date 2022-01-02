@@ -1,0 +1,61 @@
+//
+// Created by intellij-pest on 2022-01-01
+// module
+// Author: axa
+//
+
+module = { SOI ~ (statement ~ ";")* ~ EOI }
+
+statement = {
+    assignment | expression
+}
+
+assignment = { name ~ "=" ~ expression }
+
+name = @{
+    XID_START ~ XID_CONTINUE*
+}
+
+expression = {
+    term ~ (op ~ term)*
+}
+
+term = {
+    string
+    | number
+    | name
+    | "(" ~ expression ~ ")"
+    | uniop
+}
+
+string = @{
+    "\"" ~ (!"\"" ~ ANY) ~ "\""
+}
+
+number = @{
+    NUMBER+ ~ ("." ~ NUMBER*)?
+}
+
+op = {
+    "+" | "-" | "*" | "/" | "^" | "%"
+}
+
+uniop = {
+    "-" ~ expression
+}
+
+WHITESPACE = _{
+    SEPARATOR
+}
+
+COMMENT = _{
+    inline_comment | end_of_line_comment
+}
+
+inline_comment = {
+    "/*" ~ (!"*/" ~ ANY)* ~ "*/"
+}
+
+end_of_line_comment = {
+    "//" ~ (!"\n" ~ ANY)
+}
