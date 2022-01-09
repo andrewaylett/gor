@@ -113,13 +113,14 @@ fn term_precedence(pairs: Pairs<Rule>) -> Result<Expression> {
 
 fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
     expect_rule(&pair, Rule::term)?;
-    let inner = pair
-        .into_inner()
-        .next()
+    let inner = pair.into_inner();
+    let next = inner
+        .peek()
         .ok_or(AstError::InvalidState("found term without inner pair"))?;
-    match inner.as_rule() {
-        Rule::string => Ok(Expression::String(inner.as_str().to_owned())),
-        Rule::number => Ok(Expression::Number(inner.as_str().parse()?)),
+    match next.as_rule() {
+        Rule::string => Ok(Expression::String(next.as_str().to_owned())),
+        Rule::number => Ok(Expression::Number(next.as_str().parse()?)),
+        Rule::expression => Ok(Expression::try_from(inner)?),
         r => Err(AstError::InvalidRule("term", r)),
     }
 }
