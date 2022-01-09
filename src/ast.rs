@@ -1,8 +1,25 @@
-use anyhow::{anyhow, Context, Result};
-use pest::iterators::{Pair, Pairs};
+use std::num::ParseIntError;
 
+use pest::iterators::{Pair, Pairs};
+use thiserror::Error;
+
+use crate::error::LuaError;
 use crate::parse::{Rule, PRECEDENCE};
 use crate::Value;
+
+#[derive(Error, Debug)]
+pub enum AstError {
+    #[error("Invalid Rule attempting to match {0}: {1:?}")]
+    InvalidRule(&'static str, Rule),
+    #[error("Invalid State During Parse: {0}")]
+    InvalidState(&'static str),
+    #[error("Parse Rule Mismatch: expected {expected:?}, not {found:?}")]
+    RuleMismatch { expected: Rule, found: Rule },
+    #[error(transparent)]
+    IntError(#[from] ParseIntError),
+}
+
+type Result<R> = core::result::Result<R, AstError>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinOp {
@@ -15,7 +32,7 @@ pub enum BinOp {
 }
 
 impl BinOp {
-    pub(crate) fn static_apply(&self, l: Value, r: Value) -> Result<Value> {
+    pub(crate) fn static_apply(&self, l: Value, r: Value) -> core::result::Result<Value, LuaError> {
         let l = l.as_int()?;
         let r = r.as_int()?;
         let v = match self {
@@ -31,7 +48,7 @@ impl BinOp {
 }
 
 impl TryFrom<Rule> for BinOp {
-    type Error = anyhow::Error;
+    type Error = AstError;
 
     fn try_from(value: Rule) -> std::result::Result<Self, Self::Error> {
         Ok(match value {
@@ -41,7 +58,7 @@ impl TryFrom<Rule> for BinOp {
             Rule::div => BinOp::Div,
             Rule::pow => BinOp::Pow,
             Rule::modulo => BinOp::Modulo,
-            r => return Err(anyhow!("Not a BinOp rule: {:?}", r)),
+            r => return Err(AstError::InvalidRule("BinOp", r)),
         })
     }
 }
@@ -71,21 +88,20 @@ fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
     if pair.as_rule() == rule {
         Ok(())
     } else {
-        Err(anyhow!(
-            "Expected a {:?} but got a {:?}",
-            rule,
-            pair.as_rule()
-        ))
+        Err(AstError::RuleMismatch {
+            expected: rule,
+            found: pair.as_rule(),
+        })
     }
 }
 
 impl TryFrom<Pairs<'_, crate::parse::Rule>> for Expression {
-    type Error = anyhow::Error;
+    type Error = AstError;
 
     fn try_from(mut pairs: Pairs<Rule>) -> Result<Self> {
-        let expression = pairs
-            .next()
-            .context("Expected an expression, got no pairs")?;
+        let expression = pairs.next().ok_or(AstError::InvalidState(
+            "Expected to get an expression, but found nothing to parse",
+        ))?;
         expect_rule(&expression, Rule::expression)?;
         term_precedence(expression.into_inner())
     }
@@ -97,14 +113,14 @@ fn term_precedence(pairs: Pairs<Rule>) -> Result<Expression> {
 
 fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
     expect_rule(&pair, Rule::term)?;
-    let inner = pair.into_inner().next().context("term contains a pair")?;
+    let inner = pair
+        .into_inner()
+        .next()
+        .ok_or(AstError::InvalidState("found term without inner pair"))?;
     match inner.as_rule() {
         Rule::string => Ok(Expression::String(inner.as_str().to_owned())),
         Rule::number => Ok(Expression::Number(inner.as_str().parse()?)),
-        r => Err(anyhow!(
-            "Not a rule that we expect to appear in a term: {:?}",
-            r
-        )),
+        r => Err(AstError::InvalidRule("term", r)),
     }
 }
 

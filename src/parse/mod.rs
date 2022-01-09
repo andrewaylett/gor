@@ -7,9 +7,9 @@ use pest_derive::Parser;
 
 #[derive(Parser)]
 #[grammar = "module.pest"]
-pub struct ModuleParser;
+pub(crate) struct ModuleParser;
 
-pub fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
+pub(crate) fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     ModuleParser::parse(rule, input)
 }
 
