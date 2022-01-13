@@ -13,6 +13,7 @@ pest_derive = "2.1.0"
 anyhow = "1.0.52"
 thiserror = "1.0.30"
 
+async-recursion = "1.0.0"
 lazy_static = "1.4.0"
 
 structopt = "0.3.25"

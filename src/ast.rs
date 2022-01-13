@@ -1,10 +1,15 @@
+use std::fmt::{Debug, Display, Formatter};
 use std::num::ParseIntError;
 
+use async_recursion::async_recursion;
 use pest::iterators::{Pair, Pairs};
 use thiserror::Error;
+use tokio::join;
 
 use crate::error::LuaError;
+use crate::eval::{try_static_eval, Context};
 use crate::parse::{Rule, PRECEDENCE};
+use crate::Result as LuaResult;
 use crate::Value;
 
 #[derive(Error, Debug)]
@@ -22,7 +27,7 @@ pub enum AstError {
 type Result<R> = core::result::Result<R, AstError>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum BinOp {
+pub(crate) enum BinOp {
     Add,
     Sub,
     Mul,
@@ -45,6 +50,10 @@ impl BinOp {
         };
         Ok(Value::Int(v))
     }
+
+    pub(crate) fn evaluate(&self, left: Value, right: Value) -> LuaResult<Value> {
+        self.static_apply(left, right).map_err(Into::into)
+    }
 }
 
 impl TryFrom<Rule> for BinOp {
@@ -63,13 +72,29 @@ impl TryFrom<Rule> for BinOp {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum UniOp {
+pub(crate) enum UniOp {
     Negate,
 }
 
+impl UniOp {
+    pub(crate) fn static_apply(&self, v: Value) -> LuaResult<Value> {
+        let v = v.as_int()?;
+        let v = match self {
+            UniOp::Negate => -v,
+        };
+        Ok(Value::Int(v))
+    }
+
+    pub(crate) fn evaluate(&self, value: Value) -> LuaResult<Value> {
+        self.static_apply(value).map_err(Into::into)
+    }
+}
+
+#[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expression {
+pub(crate) enum Expression {
     BinOp {
         left: Box<Expression>,
         op: BinOp,
@@ -77,11 +102,20 @@ pub enum Expression {
     },
     String(String),
     Number(i64),
-    Name(String),
+    Name(Name),
     UniOp {
         op: UniOp,
         exp: Box<Expression>,
     },
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Name(String);
+
+impl Display for Name {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
 }
 
 fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
@@ -121,6 +155,7 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
         Rule::string => Ok(Expression::String(next.as_str().to_owned())),
         Rule::number => Ok(Expression::Number(next.as_str().parse()?)),
         Rule::expression => Ok(Expression::try_from(inner)?),
+        Rule::name => Ok(Expression::Name(Name(next.as_str().to_owned()))),
         r => Err(AstError::InvalidRule("term", r)),
     }
 }
@@ -134,4 +169,42 @@ fn term_infix(
     let left = Box::new(left?);
     let right = Box::new(right?);
     Ok(Expression::BinOp { left, op, right })
+}
+
+impl Expression {
+    #[async_recursion]
+    pub(crate) async fn evaluate(&self, context: &Context) -> LuaResult<Value> {
+        if let Ok(r) = try_static_eval(self) {
+            return Ok(r);
+        }
+
+        Ok(match self {
+            Expression::BinOp { left, op, right } => {
+                let left = left.evaluate(context);
+                let right = right.evaluate(context);
+                let (left, right) = join!(left, right);
+                op.evaluate(left?, right?)?
+            }
+            Expression::String(s) => Value::String(s.to_owned()),
+            Expression::Number(n) => Value::Int(*n),
+            Expression::Name(n) => context.lookup(n)?,
+            Expression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
+        })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::ast::Name;
+    use crate::parse::test::parse_expression;
+    use crate::Expression;
+    use anyhow::Result;
+
+    #[test]
+    fn parse_name() -> Result<()> {
+        let p = parse_expression("foo")?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(Expression::Name(Name("foo".to_owned())), e);
+        Ok(())
+    }
 }

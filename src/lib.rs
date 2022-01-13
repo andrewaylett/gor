@@ -23,19 +23,22 @@
 
 use crate::ast::Expression;
 use crate::error::Result;
-use crate::eval::Value;
+use crate::eval::{Context, Value};
 
 mod ast;
+pub(crate) mod eval;
 mod parse;
 
 pub mod error {
     use thiserror::Error;
 
-    use crate::ast::AstError;
+    use crate::ast::{AstError, Name};
     use crate::eval::Type;
 
     #[derive(Error, Debug)]
     pub enum LuaError {
+        #[error("Name not found: {0}")]
+        NameError(Name),
         #[error(transparent)]
         AstError(#[from] AstError),
         #[error("Type Mismatch: expected {expected:?}, not {found:?}")]
@@ -49,72 +52,19 @@ pub mod error {
     pub type Result<R> = core::result::Result<R, LuaError>;
 }
 
-mod eval {
-    use crate::error::{LuaError, Result};
-
-    #[derive(Debug, Eq, PartialEq, Copy, Clone)]
-    pub enum Type {
-        Int,
-        String,
-    }
-
-    #[derive(Debug, PartialEq)]
-    pub enum Value {
-        Int(i64),
-        String(String),
-    }
-
-    impl Value {
-        pub fn as_type(&self) -> Type {
-            match self {
-                Value::Int(_) => Type::Int,
-                Value::String(_) => Type::String,
-            }
-        }
-
-        pub fn as_int(&self) -> Result<i64> {
-            if let Value::Int(n) = self {
-                Ok(*n)
-            } else {
-                Err(LuaError::TypeError {
-                    expected: Type::Int,
-                    found: self.as_type(),
-                })
-            }
-        }
-    }
-}
-
-pub fn try_static_eval(exp: &Expression) -> Result<Value> {
-    Ok(match exp {
-        Expression::BinOp { left, op, right } => {
-            op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?
-        }
-        Expression::String(_) => {
-            todo!()
-        }
-        Expression::Number(n) => Value::Int(*n),
-        Expression::Name(_) => {
-            todo!()
-        }
-        Expression::UniOp { .. } => {
-            todo!()
-        }
-    })
-}
-
 pub async fn exec(input: &str) -> Result<Value> {
     let p = parse::parse(parse::Rule::expression, input)?;
     let e = Expression::try_from(p)?;
-    try_static_eval(&e)
+    e.evaluate(&Context {}).await
 }
 
 #[cfg(test)]
 mod test {
     use anyhow::Result;
 
+    use crate::eval::try_static_eval;
     use crate::parse::test::parse_expression;
-    use crate::{try_static_eval, Expression, Value};
+    use crate::{Expression, Value};
 
     #[test]
     fn static_eval_int_addition() -> Result<()> {

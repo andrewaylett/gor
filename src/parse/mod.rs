@@ -28,9 +28,10 @@ pub(crate) mod test {
     use anyhow::Result;
     use pest::iterators::Pairs;
 
+    use crate::eval::try_static_eval;
     use crate::parse::parse;
     use crate::parse::Rule;
-    use crate::{try_static_eval, Expression, Value};
+    use crate::{Expression, Value};
 
     pub(crate) fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
         Ok(parse(Rule::expression, input)?)
