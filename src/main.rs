@@ -20,7 +20,6 @@
     clippy::expect_used
 )]
 
-use std::error::Error;
 use std::path::PathBuf;
 
 use structopt::StructOpt;
@@ -33,7 +32,7 @@ struct Opt {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
+async fn main() -> Result<(), anyhow::Error> {
     let opts = Opt::from_args();
 
     let mut s = String::new();

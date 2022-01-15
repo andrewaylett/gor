@@ -32,17 +32,15 @@ mod parse;
 pub mod error {
     use thiserror::Error;
 
-    use crate::ast::{AstError, Name};
-    use crate::eval::Type;
+    use crate::ast::AstError;
+    use crate::eval::RuntimeError;
 
     #[derive(Error, Debug)]
     pub enum LuaError {
-        #[error("Name not found: {0}")]
-        NameError(Name),
+        #[error(transparent)]
+        RuntimeError(#[from] RuntimeError),
         #[error(transparent)]
         AstError(#[from] AstError),
-        #[error("Type Mismatch: expected {expected:?}, not {found:?}")]
-        TypeError { expected: Type, found: Type },
         #[error(transparent)]
         PestError(#[from] pest::error::Error<crate::parse::Rule>),
         #[error("Unknown Lua Error")]

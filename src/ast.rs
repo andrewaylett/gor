@@ -6,8 +6,7 @@ use pest::iterators::{Pair, Pairs};
 use thiserror::Error;
 use tokio::join;
 
-use crate::error::LuaError;
-use crate::eval::{try_static_eval, Context};
+use crate::eval::{try_static_eval, Context, RuntimeError};
 use crate::parse::{Rule, PRECEDENCE};
 use crate::Result as LuaResult;
 use crate::Value;
@@ -27,7 +26,7 @@ pub enum AstError {
 type Result<R> = core::result::Result<R, AstError>;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub(crate) enum BinOp {
+pub enum BinOp {
     Add,
     Sub,
     Mul,
@@ -37,7 +36,11 @@ pub(crate) enum BinOp {
 }
 
 impl BinOp {
-    pub(crate) fn static_apply(&self, l: Value, r: Value) -> core::result::Result<Value, LuaError> {
+    pub(crate) fn static_apply(
+        &self,
+        l: Value,
+        r: Value,
+    ) -> core::result::Result<Value, RuntimeError> {
         let l = l.as_int()?;
         let r = r.as_int()?;
         let v = match self {
@@ -74,12 +77,12 @@ impl TryFrom<Rule> for BinOp {
 
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub(crate) enum UniOp {
+pub enum UniOp {
     Negate,
 }
 
 impl UniOp {
-    pub(crate) fn static_apply(&self, v: Value) -> LuaResult<Value> {
+    pub(crate) fn static_apply(&self, v: Value) -> core::result::Result<Value, RuntimeError> {
         let v = v.as_int()?;
         let v = match self {
             UniOp::Negate => -v,
@@ -94,7 +97,7 @@ impl UniOp {
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum Expression {
+pub enum Expression {
     BinOp {
         left: Box<Expression>,
         op: BinOp,
@@ -152,7 +155,15 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
         .peek()
         .ok_or(AstError::InvalidState("found term without inner pair"))?;
     match next.as_rule() {
-        Rule::string => Ok(Expression::String(next.as_str().to_owned())),
+        Rule::string => {
+            let string_inner = next
+                .into_inner()
+                .find(|p| p.as_rule() == Rule::string_inner)
+                .ok_or(AstError::InvalidState(
+                    "Found a string without a string_inner",
+                ))?;
+            Ok(Expression::String(string_inner.as_str().to_owned()))
+        }
         Rule::number => Ok(Expression::Number(next.as_str().parse()?)),
         Rule::expression => Ok(Expression::try_from(inner)?),
         Rule::name => Ok(Expression::Name(Name(next.as_str().to_owned()))),
@@ -205,6 +216,30 @@ mod test {
         let p = parse_expression("foo")?;
         let e = Expression::try_from(p)?;
         assert_eq!(Expression::Name(Name("foo".to_owned())), e);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_string() -> Result<()> {
+        let p = parse_expression("\"foo\"")?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(Expression::String("foo".to_owned()), e);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_with_escaped_quote() -> Result<()> {
+        let p = parse_expression(r#""f\"oo""#)?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(Expression::String(r#"f\"oo"#.to_owned()), e);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_with_escaped_slash() -> Result<()> {
+        let p = parse_expression(r##""foo\\""##)?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(Expression::String("foo\\\\".to_owned()), e);
         Ok(())
     }
 }

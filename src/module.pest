@@ -28,8 +28,12 @@ term = {
     | uniop
 }
 
-string = @{
-    "\"" ~ (!"\"" ~ ANY) ~ "\""
+string = ${
+    "\"" ~ string_inner ~ "\""
+}
+
+string_inner = @{
+    ("\\\\" | "\\\"" | !"\"" ~ ANY)*
 }
 
 number = @{

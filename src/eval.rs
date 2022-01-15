@@ -1,6 +1,19 @@
+use thiserror::Error;
+
 use crate::ast::Name;
-use crate::error::{LuaError, Result};
 use crate::Expression;
+
+#[derive(Error, Debug)]
+pub enum RuntimeError {
+    #[error("Name not found: {0}")]
+    NameError(Name),
+    #[error("Can't static eval {0:?}")]
+    StaticEvaluationFailure(Expression),
+    #[error("Type Mismatch: expected {expected:?}, not {found:?}")]
+    TypeError { expected: Type, found: Type },
+}
+
+type Result<R> = core::result::Result<R, RuntimeError>;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Type {
@@ -26,7 +39,7 @@ impl Value {
         if let Value::Int(n) = self {
             Ok(*n)
         } else {
-            Err(LuaError::TypeError {
+            Err(RuntimeError::TypeError {
                 expected: Type::Int,
                 found: self.as_type(),
             })
@@ -35,27 +48,22 @@ impl Value {
 }
 
 pub(crate) fn try_static_eval(exp: &Expression) -> Result<Value> {
-    Ok(match exp {
+    match exp {
         Expression::BinOp { left, op, right } => {
-            op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?
+            Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
         }
-        Expression::String(_) => {
-            todo!()
+        Expression::String(_) | Expression::Name(_) => {
+            Err(RuntimeError::StaticEvaluationFailure(exp.clone()))
         }
-        Expression::Number(n) => Value::Int(*n),
-        Expression::Name(_) => {
-            todo!()
-        }
-        Expression::UniOp { .. } => {
-            todo!()
-        }
-    })
+        Expression::Number(n) => Ok(Value::Int(*n)),
+        Expression::UniOp { op, exp } => Ok(op.static_apply(try_static_eval(exp)?)?),
+    }
 }
 
 pub(crate) struct Context {}
 
 impl Context {
     pub(crate) fn lookup(&self, name: &Name) -> Result<Value> {
-        Err(LuaError::NameError(name.clone()))
+        Err(RuntimeError::NameError(name.clone()))
     }
 }
