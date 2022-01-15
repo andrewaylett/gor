@@ -60,4 +60,13 @@ pub(crate) mod test {
         assert_eq!(Value::Int(9), r, "Expression was {:?}", &e);
         Ok(())
     }
+
+    #[test]
+    fn negative() -> Result<()> {
+        let p = parse_expression("-1")?;
+        let e = Expression::try_from(p)?;
+        let r = try_static_eval(&e)?;
+        assert_eq!(Value::Int(-1), r, "Expression was {:?}", &e);
+        Ok(())
+    }
 }

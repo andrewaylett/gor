@@ -167,6 +167,13 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
         Rule::number => Ok(Expression::Number(next.as_str().parse()?)),
         Rule::expression => Ok(Expression::try_from(inner)?),
         Rule::name => Ok(Expression::Name(Name(next.as_str().to_owned()))),
+        Rule::uniop => {
+            let expr = next.into_inner();
+            Ok(Expression::UniOp {
+                op: UniOp::Negate,
+                exp: Box::new(Expression::try_from(expr)?),
+            })
+        }
         r => Err(AstError::InvalidRule("term", r)),
     }
 }
