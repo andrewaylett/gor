@@ -1,7 +1,9 @@
 use std::fmt::{Debug, Display, Formatter};
 use std::num::ParseIntError;
 
+use crate::error::LuaError;
 use async_recursion::async_recursion;
+use futures::future::join_all;
 use pest::iterators::{Pair, Pairs};
 use thiserror::Error;
 use tokio::join;
@@ -75,7 +77,6 @@ impl TryFrom<Rule> for BinOp {
     }
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum UniOp {
     Negate,
@@ -95,7 +96,7 @@ impl UniOp {
     }
 }
 
-#[allow(dead_code)]
+#[must_use = "expressions are side-effect free unless evaluated"]
 #[derive(Debug, Clone, PartialEq)]
 pub enum Expression {
     BinOp {
@@ -109,6 +110,10 @@ pub enum Expression {
     UniOp {
         op: UniOp,
         exp: Box<Expression>,
+    },
+    Call {
+        name: Name,
+        parameters: Vec<Expression>,
     },
 }
 
@@ -139,6 +144,14 @@ impl TryFrom<Pairs<'_, crate::parse::Rule>> for Expression {
         let expression = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get an expression, but found nothing to parse",
         ))?;
+        Expression::try_from(expression)
+    }
+}
+
+impl TryFrom<Pair<'_, crate::parse::Rule>> for Expression {
+    type Error = AstError;
+
+    fn try_from(expression: Pair<crate::parse::Rule>) -> Result<Self> {
         expect_rule(&expression, Rule::expression)?;
         term_precedence(expression.into_inner())
     }
@@ -174,6 +187,19 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
                 exp: Box::new(Expression::try_from(expr)?),
             })
         }
+        Rule::call => {
+            let mut call = next.into_inner();
+            let name = call
+                .next()
+                .ok_or(AstError::InvalidState("Found a call with no name"))?;
+            expect_rule(&name, Rule::name)?;
+            let name = Name(name.as_str().to_owned());
+            let parameters = call.try_fold(vec![], |mut result, expression| {
+                result.push(Expression::try_from(expression)?);
+                Ok(result) as Result<Vec<Expression>>
+            })?;
+            Ok(Expression::Call { name, parameters })
+        }
         r => Err(AstError::InvalidRule("term", r)),
     }
 }
@@ -207,6 +233,22 @@ impl Expression {
             Expression::Number(n) => Value::Int(*n),
             Expression::Name(n) => context.lookup(n)?,
             Expression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
+            Expression::Call { name, parameters } => {
+                let parameter_futures: Vec<_> = parameters
+                    .iter()
+                    .map(|expr| expr.evaluate(context))
+                    .collect();
+                let mut vector = vec![];
+                vector.reserve_exact(parameters.len());
+                let parameters = join_all(parameter_futures).await.into_iter().try_fold(
+                    vector,
+                    |mut r, p| {
+                        r.push(p?);
+                        Ok(r) as core::result::Result<Vec<Value>, LuaError>
+                    },
+                )?;
+                context.lookup(name)?.call(&parameters)?
+            }
         })
     }
 }
@@ -247,6 +289,34 @@ mod test {
         let p = parse_expression(r##""foo\\""##)?;
         let e = Expression::try_from(p)?;
         assert_eq!(Expression::String("foo\\\\".to_owned()), e);
+        Ok(())
+    }
+
+    #[test]
+    fn parse_call() -> Result<()> {
+        let p = parse_expression("foo()")?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(
+            Expression::Call {
+                name: Name("foo".to_owned()),
+                parameters: vec![]
+            },
+            e
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn parse_call_with_params() -> Result<()> {
+        let p = parse_expression("foo(1,2)")?;
+        let e = Expression::try_from(p)?;
+        assert_eq!(
+            Expression::Call {
+                name: Name("foo".to_owned()),
+                parameters: vec![Expression::Number(1), Expression::Number(2)]
+            },
+            e
+        );
         Ok(())
     }
 }

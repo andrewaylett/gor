@@ -5,6 +5,8 @@ use crate::Expression;
 
 #[derive(Error, Debug)]
 pub enum RuntimeError {
+    #[error("Not a function: {0:?}")]
+    NotAFunction(Value),
     #[error("Name not found: {0}")]
     NameError(Name),
     #[error("Can't static eval {0:?}")]
@@ -21,7 +23,7 @@ pub enum Type {
     String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Value {
     Int(i64),
     String(String),
@@ -45,6 +47,10 @@ impl Value {
             })
         }
     }
+
+    pub fn call(&self, _parameters: &[Value]) -> Result<Value> {
+        Err(RuntimeError::NotAFunction(self.clone()))
+    }
 }
 
 pub(crate) fn try_static_eval(exp: &Expression) -> Result<Value> {
@@ -52,7 +58,7 @@ pub(crate) fn try_static_eval(exp: &Expression) -> Result<Value> {
         Expression::BinOp { left, op, right } => {
             Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
         }
-        Expression::String(_) | Expression::Name(_) => {
+        Expression::String(_) | Expression::Name(_) | Expression::Call { .. } => {
             Err(RuntimeError::StaticEvaluationFailure(exp.clone()))
         }
         Expression::Number(n) => Ok(Value::Int(*n)),

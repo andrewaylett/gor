@@ -23,6 +23,7 @@ expression = {
 term = {
     string
     | number
+    | call
     | name
     | "(" ~ expression ~ ")"
     | uniop
@@ -53,6 +54,10 @@ modulo = {"%"}
 
 uniop = {
     "-" ~ expression
+}
+
+call = {
+    name ~ "(" ~ (expression ~ ("," ~ expression)*)? ~ ")"
 }
 
 WHITESPACE = _{
