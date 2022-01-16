@@ -1,6 +1,6 @@
+use crate::error::LuaResult;
 use crate::eval::RuntimeError;
-use crate::Result as LuaResult;
-use crate::Value;
+use crate::eval::Value;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum UniOp {
@@ -16,7 +16,7 @@ impl UniOp {
         Ok(Value::Int(v))
     }
 
-    pub(crate) fn evaluate(&self, value: Value) -> LuaResult<Value> {
+    pub(crate) fn evaluate(&self, value: Value) -> LuaResult {
         self.static_apply(value).map_err(Into::into)
     }
 }

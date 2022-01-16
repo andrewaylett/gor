@@ -4,8 +4,10 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use thiserror::Error;
 
+use crate::ast::expression::Expression;
 use crate::ast::name::Name;
-use crate::Expression;
+use crate::error::LuaResult;
+use crate::parse::{parse, Rule};
 
 #[derive(Error, Debug)]
 pub enum RuntimeError {
@@ -120,4 +122,10 @@ lazy_static! {
         m.insert("print", Value::Intrinsic(Intrinsic::Print));
         Context { values: m }
     };
+}
+
+pub async fn exec(input: &str) -> LuaResult {
+    let p = parse(Rule::expression, input)?;
+    let e = Expression::try_from(p)?;
+    e.evaluate(&*GLOBAL_CONTEXT).await
 }

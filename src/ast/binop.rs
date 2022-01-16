@@ -1,8 +1,8 @@
 use crate::ast::AstError;
+use crate::error::LuaResult;
 use crate::eval::RuntimeError;
+use crate::eval::Value;
 use crate::parse::Rule;
-use crate::Result as LuaResult;
-use crate::Value;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinOp {
@@ -15,11 +15,7 @@ pub enum BinOp {
 }
 
 impl BinOp {
-    pub(crate) fn static_apply(
-        &self,
-        l: Value,
-        r: Value,
-    ) -> core::result::Result<Value, RuntimeError> {
+    pub(crate) fn static_apply(&self, l: Value, r: Value) -> Result<Value, RuntimeError> {
         let l = l.as_int()?;
         let r = r.as_int()?;
         let v = match self {
@@ -33,7 +29,7 @@ impl BinOp {
         Ok(Value::Int(v))
     }
 
-    pub(crate) fn evaluate(&self, left: Value, right: Value) -> LuaResult<Value> {
+    pub(crate) fn evaluate(&self, left: Value, right: Value) -> LuaResult {
         self.static_apply(left, right).map_err(Into::into)
     }
 }

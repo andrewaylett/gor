@@ -21,47 +21,22 @@
 )]
 #![deny(unsafe_code)]
 
-use crate::ast::expression::Expression;
-use crate::error::Result;
-use crate::eval::{Value, GLOBAL_CONTEXT};
-
 mod ast;
-pub mod eval;
+mod error;
+mod eval;
 mod parse;
 
-pub mod error {
-    use thiserror::Error;
+pub use eval::exec;
+pub use eval::Value;
 
-    use crate::ast::AstError;
-    use crate::eval::RuntimeError;
-
-    #[derive(Error, Debug)]
-    pub enum LuaError {
-        #[error(transparent)]
-        RuntimeError(#[from] RuntimeError),
-        #[error(transparent)]
-        AstError(#[from] AstError),
-        #[error(transparent)]
-        PestError(#[from] pest::error::Error<crate::parse::Rule>),
-        #[error("Unknown Lua Error")]
-        Unknown,
-    }
-
-    pub type Result<R> = core::result::Result<R, LuaError>;
-}
-
-pub async fn exec(input: &str) -> Result<Value> {
-    let p = parse::parse(parse::Rule::expression, input)?;
-    let e = Expression::try_from(p)?;
-    e.evaluate(&*GLOBAL_CONTEXT).await
-}
 #[cfg(test)]
 mod test {
     use anyhow::Result;
 
+    use crate::ast::expression::Expression;
     use crate::eval::try_static_eval;
+    use crate::eval::Value;
     use crate::parse::test::parse_expression;
-    use crate::{Expression, Value};
 
     #[test]
     fn static_eval_int_addition() -> Result<()> {

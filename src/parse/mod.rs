@@ -31,13 +31,13 @@ lazy_static! {
 
 #[cfg(test)]
 pub(crate) mod test {
+    use crate::ast::expression::Expression;
     use anyhow::Result;
     use pest::iterators::Pairs;
 
-    use crate::eval::try_static_eval;
+    use crate::eval::{try_static_eval, Value};
     use crate::parse::parse;
     use crate::parse::Rule;
-    use crate::{Expression, Value};
 
     pub(crate) fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
         Ok(parse(Rule::expression, input)?)

@@ -4,11 +4,11 @@ use crate::ast::uniop::UniOp;
 use crate::ast::Result;
 use crate::ast::{expect_rule, AstError};
 use crate::error::LuaError;
+use crate::error::LuaResult;
+use crate::eval::Value;
 use crate::eval::{try_static_eval, Context};
 use crate::parse::Rule;
 use crate::parse::PRECEDENCE;
-use crate::Result as LuaResult;
-use crate::Value;
 use async_recursion::async_recursion;
 use futures::future::join_all;
 use pest::iterators::{Pair, Pairs};
@@ -115,7 +115,7 @@ fn term_infix(
 
 impl Expression {
     #[async_recursion]
-    pub(crate) async fn evaluate(&self, context: &Context) -> LuaResult<Value> {
+    pub(crate) async fn evaluate(&self, context: &Context) -> LuaResult {
         if let Ok(r) = try_static_eval(self) {
             return Ok(r);
         }
