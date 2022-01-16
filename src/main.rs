@@ -40,6 +40,10 @@ async fn main() -> Result<(), anyhow::Error> {
     file.read_to_string(&mut s).await?;
 
     let result = lua::exec(&s).await?;
-    println!("{:?}", result);
+    if let lua::eval::Value::Void = result {
+        // Ignore
+    } else {
+        println!("{:?}", result);
+    }
     Ok(())
 }

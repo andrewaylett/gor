@@ -126,6 +126,12 @@ impl Display for Name {
     }
 }
 
+impl Name {
+    pub fn to_str(&self) -> &str {
+        &self.0
+    }
+}
+
 fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
     if pair.as_rule() == rule {
         Ok(())
@@ -231,7 +237,7 @@ impl Expression {
             }
             Expression::String(s) => Value::String(s.to_owned()),
             Expression::Number(n) => Value::Int(*n),
-            Expression::Name(n) => context.lookup(n)?,
+            Expression::Name(n) => context.lookup(n)?.clone(),
             Expression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
             Expression::Call { name, parameters } => {
                 let parameter_futures: Vec<_> = parameters

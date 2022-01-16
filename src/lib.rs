@@ -23,10 +23,10 @@
 
 use crate::ast::Expression;
 use crate::error::Result;
-use crate::eval::{Context, Value};
+use crate::eval::{Value, GLOBAL_CONTEXT};
 
 mod ast;
-pub(crate) mod eval;
+pub mod eval;
 mod parse;
 
 pub mod error {
@@ -53,9 +53,8 @@ pub mod error {
 pub async fn exec(input: &str) -> Result<Value> {
     let p = parse::parse(parse::Rule::expression, input)?;
     let e = Expression::try_from(p)?;
-    e.evaluate(&Context {}).await
+    e.evaluate(core::ops::Deref::deref(&GLOBAL_CONTEXT)).await
 }
-
 #[cfg(test)]
 mod test {
     use anyhow::Result;
