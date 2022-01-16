@@ -21,7 +21,7 @@
 )]
 #![deny(unsafe_code)]
 
-use crate::ast::Expression;
+use crate::ast::expression::Expression;
 use crate::error::Result;
 use crate::eval::{Value, GLOBAL_CONTEXT};
 
@@ -53,7 +53,7 @@ pub mod error {
 pub async fn exec(input: &str) -> Result<Value> {
     let p = parse::parse(parse::Rule::expression, input)?;
     let e = Expression::try_from(p)?;
-    e.evaluate(core::ops::Deref::deref(&GLOBAL_CONTEXT)).await
+    e.evaluate(&*GLOBAL_CONTEXT).await
 }
 #[cfg(test)]
 mod test {

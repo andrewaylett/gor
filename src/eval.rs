@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use thiserror::Error;
 
-use crate::ast::Name;
+use crate::ast::name::Name;
 use crate::Expression;
 
 #[derive(Error, Debug)]

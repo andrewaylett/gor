@@ -3,11 +3,17 @@ use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
-use pest_derive::Parser;
 
-#[derive(Parser)]
-#[grammar = "module.pest"]
-pub(crate) struct ModuleParser;
+use crate::parse::implementation::ModuleParser;
+
+mod implementation {
+    use pest_derive::Parser;
+    #[derive(Parser)]
+    #[grammar = "module.pest"]
+    pub(crate) struct ModuleParser;
+}
+
+pub(crate) use implementation::Rule;
 
 pub(crate) fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
     ModuleParser::parse(rule, input)

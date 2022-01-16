@@ -22,6 +22,7 @@
 
 use std::path::PathBuf;
 
+use lua::eval::Value::Void;
 use structopt::StructOpt;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
@@ -40,10 +41,10 @@ async fn main() -> Result<(), anyhow::Error> {
     file.read_to_string(&mut s).await?;
 
     let result = lua::exec(&s).await?;
-    if let lua::eval::Value::Void = result {
-        // Ignore
+    if let Void = result {
+        Ok(())
     } else {
         println!("{:?}", result);
+        Ok(())
     }
-    Ok(())
 }
