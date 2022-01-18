@@ -6,7 +6,7 @@ use crate::ast::{expect_rule, AstError};
 use crate::error::LuaError;
 use crate::error::LuaResult;
 use crate::eval::Value;
-use crate::eval::{try_static_eval, Context};
+use crate::eval::{try_static_eval, ExecutionContext};
 use crate::parse::Rule;
 use crate::parse::PRECEDENCE;
 use async_recursion::async_recursion;
@@ -77,7 +77,7 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
         }
         Rule::number => Ok(Expression::Number(next.as_str().parse()?)),
         Rule::expression => Ok(Expression::try_from(inner)?),
-        Rule::name => Ok(Expression::Name(Name(next.as_str().to_owned()))),
+        Rule::name => Ok(Expression::Name(next.as_str().into())),
         Rule::uniop => {
             let expr = next.into_inner();
             Ok(Expression::UniOp {
@@ -91,7 +91,7 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
                 .next()
                 .ok_or(AstError::InvalidState("Found a call with no name"))?;
             expect_rule(&name, Rule::name)?;
-            let name = Name(name.as_str().to_owned());
+            let name: Name = name.as_str().into();
             let parameters = call.try_fold(vec![], |mut result, expression| {
                 result.push(Expression::try_from(expression)?);
                 Ok(result) as Result<Vec<Expression>>
@@ -115,7 +115,7 @@ fn term_infix(
 
 impl Expression {
     #[async_recursion]
-    pub(crate) async fn evaluate(&self, context: &Context) -> LuaResult {
+    pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> LuaResult {
         if let Ok(r) = try_static_eval(self) {
             return Ok(r);
         }

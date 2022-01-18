@@ -56,7 +56,7 @@ impl Display for Value {
 }
 
 impl Value {
-    pub fn as_type(&self) -> Type {
+    pub const fn as_type(&self) -> Type {
         match self {
             Value::Int(_) => Type::Int,
             Value::String(_) => Type::String,
@@ -65,7 +65,7 @@ impl Value {
         }
     }
 
-    pub fn as_int(&self) -> Result<i64> {
+    pub const fn as_int(&self) -> Result<i64> {
         if let Value::Int(n) = self {
             Ok(*n)
         } else {
@@ -104,23 +104,23 @@ pub(crate) fn try_static_eval(exp: &Expression) -> Result<Value> {
     }
 }
 
-pub(crate) struct Context<'a> {
-    values: HashMap<&'a str, Value>,
+pub(crate) struct ExecutionContext {
+    globals: HashMap<Name, Value>,
 }
 
-impl Context<'_> {
+impl ExecutionContext {
     pub(crate) fn lookup(&self, name: &Name) -> Result<&Value> {
-        self.values
-            .get(name.to_str())
-            .ok_or_else(|| RuntimeError::NameError(name.clone()))
+        self.globals
+            .get(name)
+            .ok_or_else(|| RuntimeError::NameError(*name))
     }
 }
 
 lazy_static! {
-    pub(crate) static ref GLOBAL_CONTEXT: Context<'static> = {
+    pub(crate) static ref GLOBAL_CONTEXT: ExecutionContext = {
         let mut m = HashMap::new();
-        m.insert("print", Value::Intrinsic(Intrinsic::Print));
-        Context { values: m }
+        m.insert("print".into(), Value::Intrinsic(Intrinsic::Print));
+        ExecutionContext { globals: m }
     };
 }
 

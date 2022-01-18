@@ -39,7 +39,6 @@ fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
 #[cfg(test)]
 mod test {
     use crate::ast::expression::Expression;
-    use crate::ast::name::Name;
     use crate::parse::test::parse_expression;
     use anyhow::Result;
 
@@ -47,7 +46,7 @@ mod test {
     fn parse_name() -> Result<()> {
         let p = parse_expression("foo")?;
         let e = Expression::try_from(p)?;
-        assert_eq!(Expression::Name(Name("foo".to_owned())), e);
+        assert_eq!(Expression::Name("foo".into()), e);
         Ok(())
     }
 
@@ -81,7 +80,7 @@ mod test {
         let e = Expression::try_from(p)?;
         assert_eq!(
             Expression::Call {
-                name: Name("foo".to_owned()),
+                name: "foo".into(),
                 parameters: vec![]
             },
             e
@@ -95,7 +94,7 @@ mod test {
         let e = Expression::try_from(p)?;
         assert_eq!(
             Expression::Call {
-                name: Name("foo".to_owned()),
+                name: "foo".into(),
                 parameters: vec![Expression::Number(1), Expression::Number(2)]
             },
             e
