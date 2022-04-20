@@ -3,7 +3,7 @@ use crate::eval::RuntimeError;
 use crate::eval::Value;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum UniOp {
+pub(crate) enum UniOp {
     Negate,
 }
 

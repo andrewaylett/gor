@@ -49,16 +49,15 @@ pub(crate) mod test {
     use crate::ast::expression::Expression;
     use anyhow::{Context, Result};
     use pest::iterators::Pairs;
-    use crate::ast::Located;
 
     use crate::eval::{try_static_eval, Value};
     use crate::parse::parse;
     use crate::parse::Rule;
 
     #[track_caller]
-    pub(crate) fn assert_expression(expected: Value, expression: &Located<Expression>) {
+    pub(crate) fn assert_expression(expected: Value, expression: &Expression) {
         let r = try_static_eval(expression).unwrap();
-        assert_eq!(expected, r, "Expression was {:?} => {:?}", expression.span, expression.item);
+        assert_eq!(expected, r, "Expression was {:?} => {:?}", expression.span, expression.inner);
     }
 
     #[track_caller]
@@ -75,7 +74,7 @@ pub(crate) mod test {
             #[test]
             fn $func_name() -> Result<()> {
                 let p = parse_expression($input)?;
-                let e = Located::try_from(p)?;
+                let e = Expression::try_from(p)?;
                 assert_expression($result, &e);
                 Ok(())
             }

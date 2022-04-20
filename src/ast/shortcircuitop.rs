@@ -1,21 +1,21 @@
 use crate::ast::expression::Expression;
-use crate::ast::{AstError, Located};
+use crate::ast::{AstError};
 use crate::error::LuaResult;
 use crate::eval::{ExecutionContext, RuntimeError};
 use crate::parse::Rule;
 use crate::Value;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-pub enum ShortCircuitOp {
+pub(crate) enum ShortCircuitOp {
     LogicalOr,
     LogicalAnd,
 }
 
 impl ShortCircuitOp {
-    pub async fn evaluate<'i>(
+    pub(crate) async fn evaluate<'i>(
         &self,
-        left: &Located<'i, Expression<'i>>,
-        right: &Located<'i, Expression<'i>>,
+        left: &Expression<'i>,
+        right: &Expression<'i>,
         context: &ExecutionContext,
     ) -> LuaResult {
         let left = left.evaluate(context).await?;
@@ -30,7 +30,7 @@ impl ShortCircuitOp {
         }
     }
 
-    pub fn static_apply<'i>(
+    pub(crate) fn static_apply<'i>(
         &self,
         left: Value,
         right: impl FnOnce() -> Result<Value, RuntimeError>,

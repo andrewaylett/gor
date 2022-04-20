@@ -2,7 +2,7 @@ use crate::ast::binop::BinOp;
 use crate::ast::name::Name;
 use crate::ast::shortcircuitop::ShortCircuitOp;
 use crate::ast::uniop::UniOp;
-use crate::ast::{Located, Result};
+use crate::ast::{Result};
 use crate::ast::{expect_rule, AstError};
 use crate::error::LuaError;
 use crate::error::LuaResult;
@@ -13,51 +13,66 @@ use crate::parse::PRECEDENCE;
 use async_recursion::async_recursion;
 use futures::future::join_all;
 use pest::iterators::{Pair, Pairs};
+use pest::Span;
 use tokio::join;
 
 #[must_use = "expressions are side-effect free unless evaluated"]
 #[derive(Debug, Clone, PartialEq)]
-pub enum Expression<'i> {
+pub(crate) struct Expression<'i> {
+    pub(crate) inner: InnerExpression<'i>,
+    pub(crate) span: Span<'i>,
+}
+
+impl Expression<'_> {
+    fn new<'i>(span: Span<'i>, inner: InnerExpression<'i>) -> Expression<'i> {
+        Expression { span, inner }
+    }
+}
+
+#[must_use = "expressions are side-effect free unless evaluated"]
+#[derive(Debug, Clone, PartialEq)]
+pub(crate) enum InnerExpression<'i> {
     BinOp {
-        left: Box<Located<'i, Expression<'i>>>,
+        left: Box<Expression<'i>>,
         op: BinOp,
-        right: Box<Located<'i, Expression<'i>>>,
+        right: Box<Expression<'i>>,
     },
     ShortCircuitOp {
-        left: Box<Located<'i, Expression<'i>>>,
+        left: Box<Expression<'i>>,
         op: ShortCircuitOp,
-        right: Box<Located<'i, Expression<'i>>>,
+        right: Box<Expression<'i>>,
     },
     String(String),
     Number(i64),
     Name(Name),
     UniOp {
         op: UniOp,
-        exp: Box<Located<'i, Expression<'i>>>,
+        exp: Box<Expression<'i>>,
     },
     Call {
         name: Name,
-        parameters: Vec<Located<'i, Expression<'i>>>,
+        parameters: Vec<Expression<'i>>,
     },
 }
 
-impl <'i> TryFrom<Pairs<'i, Rule>> for Located<'i, Expression<'i>> {
+impl <'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
     type Error = AstError;
 
     fn try_from(mut pairs: Pairs<'i, Rule>) -> super::Result<Self> {
         let expression = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get an expression, but found nothing to parse",
         ))?;
-        let item = Located::try_from(expression);
+        let span = expression.as_span();
+        let item = InnerExpression::try_from(expression);
         if pairs.next().is_some() {
             Err(AstError::InvalidState("Expected to consume all of the parse"))
         } else {
-            item
+            Ok(Expression::new(span, item?))
         }
     }
 }
 
-impl <'i> TryFrom<Pair<'i, Rule>> for Located<'i, Expression<'i>> {
+impl <'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
     type Error = AstError;
 
     fn try_from(expression: Pair<'i, Rule>) -> Result<Self> {
@@ -65,25 +80,25 @@ impl <'i> TryFrom<Pair<'i, Rule>> for Located<'i, Expression<'i>> {
         let span = expression.as_span();
         let item = term_precedence(expression.into_inner())?;
         if span == item.span {
-            Ok(item)
+            Ok(item.inner)
         } else {
             Err(AstError::InvalidStateString(format!("Expected the parsed expression {:?} to cover the input {:?}", item.span, span)))
         }
     }
 }
 
-fn term_precedence(pairs: Pairs<Rule>) -> Result<Located<Expression>> {
+fn term_precedence(pairs: Pairs<Rule>) -> Result<Expression> {
     PRECEDENCE.climb(pairs, term_primary, term_infix)
 }
 
-fn term_primary(pair: Pair<Rule>) -> Result<Located<Expression>> {
+fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
     expect_rule(&pair, Rule::term)?;
     let span = pair.as_span();
     let inner = pair.into_inner();
     let next = inner
         .peek()
         .ok_or(AstError::InvalidState("found term without inner pair"))?;
-    let expr: Expression = match next.as_rule() {
+    let expr: InnerExpression = match next.as_rule() {
         Rule::string => {
             let string_inner = next
                 .into_inner()
@@ -91,19 +106,18 @@ fn term_primary(pair: Pair<Rule>) -> Result<Located<Expression>> {
                 .ok_or(AstError::InvalidState(
                     "Found a string without a string_inner",
                 ))?;
-            Expression::String(string_inner.as_str().to_owned())
+            InnerExpression::String(string_inner.as_str().to_owned())
         }
-        Rule::number => Expression::Number(next.as_str().parse()?),
+        Rule::number => InnerExpression::Number(next.as_str().parse()?),
         Rule::expression => {
-            let expr = Located::try_from(inner)?;
-            expr.item
+            InnerExpression::try_from(next)?
         },
-        Rule::name => Expression::Name(next.as_str().into()),
+        Rule::name => InnerExpression::Name(next.as_str().into()),
         Rule::unitary_op => {
             let expr = next.into_inner();
-            Expression::UniOp {
+            InnerExpression::UniOp {
                 op: UniOp::Negate,
-                exp: Box::new(Located::try_from(expr)?),
+                exp: Box::new(Expression::try_from(expr)?),
             }
         }
         Rule::call => {
@@ -114,21 +128,22 @@ fn term_primary(pair: Pair<Rule>) -> Result<Located<Expression>> {
             expect_rule(&name, Rule::name)?;
             let name: Name = name.as_str().into();
             let parameters = call.try_fold(vec![], |mut result, expression| {
-                result.push(Located::try_from(expression)?);
-                Ok(result) as Result<Vec<Located<Expression>>>
+                let span = expression.as_span();
+                result.push(Expression::new(span, InnerExpression::try_from(expression)?));
+                Ok(result) as Result<Vec<Expression>>
             })?;
-            Expression::Call { name, parameters }
+            InnerExpression::Call { name, parameters }
         }
         r => return Err(AstError::InvalidRule("term", r)),
     };
-    Ok(Located::new(span, expr))
+    Ok(Expression::new(span, expr))
 }
 
 fn term_infix<'i>(
-    left: Result<Located<'i, Expression<'i>>>,
+    left: Result<Expression<'i>>,
     op: Pair<'i, Rule>,
-    right: Result<Located<'i, Expression<'i>>>,
-) -> Result<Located<'i, Expression<'i>>> {
+    right: Result<Expression<'i>>,
+) -> Result<Expression<'i>> {
     let left = left?;
     let right = right?;
     let start = left.span.start_pos();
@@ -140,37 +155,37 @@ fn term_infix<'i>(
     match op {
         Rule::bool_and | Rule::bool_or => {
             let op = op.try_into()?;
-            Ok(Located::new(span, Expression::ShortCircuitOp { left, op, right }))
+            Ok(Expression::new(span, InnerExpression::ShortCircuitOp { left, op, right }))
         }
         _ => {
             let op = op.try_into()?;
-            Ok(Located::new(span, Expression::BinOp { left, op, right }))
+            Ok(Expression::new(span, InnerExpression::BinOp { left, op, right }))
         }
     }
 }
 
-impl <'i> Located<'i, Expression<'i>> {
+impl <'i> Expression<'i> {
     #[async_recursion]
     pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> LuaResult {
         if let Ok(r) = try_static_eval(self) {
             return Ok(r);
         }
 
-        Ok(match &self.item {
-            Expression::BinOp { left, op, right } => {
+        Ok(match &self.inner {
+            InnerExpression::BinOp { left, op, right } => {
                 let left = left.evaluate(context);
                 let right = right.evaluate(context);
                 let (left, right) = join!(left, right);
                 op.evaluate(left?, right?)?
             }
-            Expression::ShortCircuitOp { left, op, right } => {
+            InnerExpression::ShortCircuitOp { left, op, right } => {
                 op.evaluate(left, right, context).await?
             }
-            Expression::String(s) => Value::String(s.to_owned()),
-            Expression::Number(n) => Value::Int(*n),
-            Expression::Name(n) => context.lookup(n)?.clone(),
-            Expression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
-            Expression::Call { name, parameters } => {
+            InnerExpression::String(s) => Value::String(s.to_owned()),
+            InnerExpression::Number(n) => Value::Int(*n),
+            InnerExpression::Name(n) => context.lookup(n)?.clone(),
+            InnerExpression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
+            InnerExpression::Call { name, parameters } => {
                 let parameter_futures: Vec<_> = parameters
                     .iter()
                     .map(|expr| expr.evaluate(context))

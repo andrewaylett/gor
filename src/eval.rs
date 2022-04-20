@@ -5,8 +5,7 @@ use std::fmt::{Debug, Display, Formatter};
 use thiserror::Error;
 use crate::ast::binop::BinOp;
 
-use crate::ast::expression::Expression;
-use crate::ast::Located;
+use crate::ast::expression::{Expression, InnerExpression};
 use crate::ast::name::Name;
 use crate::error::LuaResult;
 use crate::eval::RuntimeError::{TypeMismatch, TypeOpMismatch};
@@ -162,24 +161,24 @@ impl Value {
     }
 }
 
-pub(crate) fn try_static_eval<'i>(exp: &'i Located<'i, Expression<'i>>) -> Result<Value> {
-    match &exp.item {
-        Expression::BinOp { left, op, right } => {
+pub(crate) fn try_static_eval<'i>(exp: &'i Expression<'i>) -> Result<Value> {
+    match &exp.inner {
+        InnerExpression::BinOp { left, op, right } => {
             Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
         }
-        Expression::ShortCircuitOp { left, op, right } => {
+        InnerExpression::ShortCircuitOp { left, op, right } => {
             Ok(op.static_apply(try_static_eval(left)?, || try_static_eval(right))?)
         }
-        Expression::String(_) | Expression::Name(_) | Expression::Call { .. } => {
+        InnerExpression::String(_) | InnerExpression::Name(_) | InnerExpression::Call { .. } => {
             Err(RuntimeError::StaticEvaluationFailure(exp.span.as_str().to_string()))
         }
-        Expression::Number(n) => Ok(Value::Int(*n)),
-        Expression::UniOp { op, exp } => Ok(op.static_apply(try_static_eval(exp)?)?),
+        InnerExpression::Number(n) => Ok(Value::Int(*n)),
+        InnerExpression::UniOp { op, exp } => Ok(op.static_apply(try_static_eval(exp)?)?),
     }
 }
 
 #[derive(Debug)]
-pub struct ExecutionContext {
+pub(crate) struct ExecutionContext {
     globals: HashMap<Name, Value>,
 }
 
@@ -201,6 +200,6 @@ lazy_static! {
 
 pub async fn exec(input: &str) -> LuaResult {
     let p = parse(Rule::expression, input)?;
-    let e = Located::try_from(p)?;
+    let e = Expression::try_from(p)?;
     e.evaluate(&*GLOBAL_CONTEXT).await
 }

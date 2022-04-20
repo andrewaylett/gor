@@ -23,19 +23,8 @@ pub enum AstError {
 
 type Result<R> = core::result::Result<R, AstError>;
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Located<'i, R> where R: Debug+ Clone+ PartialEq {
-    pub(crate) span: Span<'i>,
-    pub item: R,
-}
-
-impl <'i, R> Located<'i, R> where R: Debug+ Clone+ PartialEq {
-    fn new(span: Span<'i>, item: R) -> Located<'i, R> {
-        Located {
-            span,
-            item,
-        }
-    }
+pub trait Located {
+    fn as_span(&self) -> Span;
 }
 
 pub(crate) mod binop;
@@ -57,55 +46,54 @@ fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::ast::expression::Expression;
+    use crate::ast::expression::{Expression, InnerExpression};
     use crate::parse::test::parse_expression;
     use anyhow::{anyhow, Result};
     use crate::ast::name::Name;
     use crate::ast::shortcircuitop::ShortCircuitOp;
-    use crate::Located;
 
     #[test]
     fn parse_name() -> Result<()> {
         let p = parse_expression("foo")?;
-        let e = Located::try_from(p)?;
-        assert_eq!(Expression::Name("foo".into()), e.item);
+        let e = Expression::try_from(p)?;
+        assert_eq!(InnerExpression::Name("foo".into()), e.inner);
         Ok(())
     }
 
     #[test]
     fn parse_string() -> Result<()> {
         let p = parse_expression("\"foo\"")?;
-        let e = Located::try_from(p)?;
-        assert_eq!(Expression::String("foo".to_owned()), e.item);
+        let e = Expression::try_from(p)?;
+        assert_eq!(InnerExpression::String("foo".to_owned()), e.inner);
         Ok(())
     }
 
     #[test]
     fn parse_with_escaped_quote() -> Result<()> {
         let p = parse_expression(r#""f\"oo""#)?;
-        let e = Located::try_from(p)?;
-        assert_eq!(Expression::String(r#"f\"oo"#.to_owned()), e.item);
+        let e = Expression::try_from(p)?;
+        assert_eq!(InnerExpression::String(r#"f\"oo"#.to_owned()), e.inner);
         Ok(())
     }
 
     #[test]
     fn parse_with_escaped_slash() -> Result<()> {
         let p = parse_expression(r##""foo\\""##)?;
-        let e = Located::try_from(p)?;
-        assert_eq!(Expression::String("foo\\\\".to_owned()), e.item);
+        let e = Expression::try_from(p)?;
+        assert_eq!(InnerExpression::String("foo\\\\".to_owned()), e.inner);
         Ok(())
     }
 
     #[test]
     fn parse_call() -> Result<()> {
         let p = parse_expression("foo()")?;
-        let e = Located::try_from(p)?;
+        let e = Expression::try_from(p)?;
         assert_eq!(
-            Expression::Call {
+            InnerExpression::Call {
                 name: "foo".into(),
                 parameters: vec![]
             },
-            e.item
+            e.inner
         );
         Ok(())
     }
@@ -113,12 +101,12 @@ mod test {
     #[test]
     fn parse_call_with_params() -> Result<()> {
         let p = parse_expression("foo(1,2)")?;
-        let e = Located::try_from(p)?;
-        if let Expression::Call {name, parameters} = e.item {
+        let e = Expression::try_from(p)?;
+        if let InnerExpression::Call {name, parameters} = e.inner {
             assert_eq!(Name::from("foo"), name);
             assert_eq!(2, parameters.len());
-            assert_eq!(Expression::Number(1), parameters[0].item);
-            assert_eq!(Expression::Number(2), parameters[1].item);
+            assert_eq!(InnerExpression::Number(1), parameters[0].inner);
+            assert_eq!(InnerExpression::Number(2), parameters[1].inner);
             Ok(())
         } else {
             Err(anyhow!("Expected a Call: {:?}", e))
@@ -130,11 +118,11 @@ mod test {
             #[test]
             fn $name() -> Result<()> {
                 let p = parse_expression($input)?;
-                let e = Located::try_from(p)?;
-                if let Expression::ShortCircuitOp {left, op, right} = e.item {
-                    assert_eq!(Expression::Number($left), left.item);
+                let e = Expression::try_from(p)?;
+                if let InnerExpression::ShortCircuitOp {left, op, right} = e.inner {
+                    assert_eq!(InnerExpression::Number($left), left.inner);
                     assert_eq!(ShortCircuitOp::$op, op);
-                    assert_eq!(Expression::Number($right), right.item);
+                    assert_eq!(InnerExpression::Number($right), right.inner);
                     Ok(())
                 } else {
                     Err(anyhow!("Expected {}: {:?}", $input, e))

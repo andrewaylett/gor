@@ -35,7 +35,6 @@ mod test {
     use anyhow::Result;
 
     use crate::ast::expression::Expression;
-    use crate::ast::Located;
     use crate::eval::try_static_eval;
     use crate::eval::Value;
     use crate::parse::test::parse_expression;
@@ -43,7 +42,7 @@ mod test {
     #[test]
     fn static_eval_int_addition() -> Result<()> {
         let parse = parse_expression("1+2")?;
-        let exp: Located<Expression> = parse.try_into()?;
+        let exp: Expression = parse.try_into()?;
         let result = try_static_eval(&exp)?;
         assert_eq!(result, Value::Int(3));
         Ok(())
