@@ -2,7 +2,7 @@ use crate::ast::binop::BinOp;
 use crate::ast::name::Name;
 use crate::ast::shortcircuitop::ShortCircuitOp;
 use crate::ast::uniop::UniOp;
-use crate::ast::{Result};
+use crate::ast::Result;
 use crate::ast::{expect_rule, AstError};
 use crate::error::LuaError;
 use crate::error::LuaResult;
@@ -55,7 +55,7 @@ pub(crate) enum InnerExpression<'i> {
     },
 }
 
-impl <'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
+impl<'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
     type Error = AstError;
 
     fn try_from(mut pairs: Pairs<'i, Rule>) -> super::Result<Self> {
@@ -65,14 +65,16 @@ impl <'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
         let span = expression.as_span();
         let item = InnerExpression::try_from(expression);
         if pairs.next().is_some() {
-            Err(AstError::InvalidState("Expected to consume all of the parse"))
+            Err(AstError::InvalidState(
+                "Expected to consume all of the parse",
+            ))
         } else {
             Ok(Expression::new(span, item?))
         }
     }
 }
 
-impl <'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
+impl<'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
     type Error = AstError;
 
     fn try_from(expression: Pair<'i, Rule>) -> Result<Self> {
@@ -82,7 +84,10 @@ impl <'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
         if span == item.span {
             Ok(item.inner)
         } else {
-            Err(AstError::InvalidStateString(format!("Expected the parsed expression {:?} to cover the input {:?}", item.span, span)))
+            Err(AstError::InvalidStateString(format!(
+                "Expected the parsed expression {:?} to cover the input {:?}",
+                item.span, span
+            )))
         }
     }
 }
@@ -109,9 +114,7 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
             InnerExpression::String(string_inner.as_str().to_owned())
         }
         Rule::number => InnerExpression::Number(next.as_str().parse()?),
-        Rule::expression => {
-            InnerExpression::try_from(next)?
-        },
+        Rule::expression => InnerExpression::try_from(next)?,
         Rule::name => InnerExpression::Name(next.as_str().into()),
         Rule::unitary_op => {
             let expr = next.into_inner();
@@ -129,7 +132,10 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
             let name: Name = name.as_str().into();
             let parameters = call.try_fold(vec![], |mut result, expression| {
                 let span = expression.as_span();
-                result.push(Expression::new(span, InnerExpression::try_from(expression)?));
+                result.push(Expression::new(
+                    span,
+                    InnerExpression::try_from(expression)?,
+                ));
                 Ok(result) as Result<Vec<Expression>>
             })?;
             InnerExpression::Call { name, parameters }
@@ -155,16 +161,22 @@ fn term_infix<'i>(
     match op {
         Rule::bool_and | Rule::bool_or => {
             let op = op.try_into()?;
-            Ok(Expression::new(span, InnerExpression::ShortCircuitOp { left, op, right }))
+            Ok(Expression::new(
+                span,
+                InnerExpression::ShortCircuitOp { left, op, right },
+            ))
         }
         _ => {
             let op = op.try_into()?;
-            Ok(Expression::new(span, InnerExpression::BinOp { left, op, right }))
+            Ok(Expression::new(
+                span,
+                InnerExpression::BinOp { left, op, right },
+            ))
         }
     }
 }
 
-impl <'i> Expression<'i> {
+impl<'i> Expression<'i> {
     #[async_recursion]
     pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> LuaResult {
         if let Ok(r) = try_static_eval(self) {

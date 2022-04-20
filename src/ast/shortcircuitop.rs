@@ -1,5 +1,5 @@
 use crate::ast::expression::Expression;
-use crate::ast::{AstError};
+use crate::ast::AstError;
 use crate::error::LuaResult;
 use crate::eval::{ExecutionContext, RuntimeError};
 use crate::parse::Rule;

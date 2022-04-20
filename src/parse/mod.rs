@@ -20,7 +20,9 @@ pub(crate) fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>>
 }
 
 macro_rules! l {
-    ($rule:ident) => {Operator::new(Rule::$rule, Assoc::Left)}
+    ($rule:ident) => {
+        Operator::new(Rule::$rule, Assoc::Left)
+    };
 }
 
 lazy_static! {
@@ -57,7 +59,11 @@ pub(crate) mod test {
     #[track_caller]
     pub(crate) fn assert_expression(expected: Value, expression: &Expression) {
         let r = try_static_eval(expression).unwrap();
-        assert_eq!(expected, r, "Expression was {:?} => {:?}", expression.span, expression.inner);
+        assert_eq!(
+            expected, r,
+            "Expression was {:?} => {:?}",
+            expression.span, expression.inner
+        );
     }
 
     #[track_caller]
@@ -78,18 +84,18 @@ pub(crate) mod test {
                 assert_expression($result, &e);
                 Ok(())
             }
-        }
+        };
     }
 
     macro_rules! test_eval_int {
         ($func_name:ident, $input:expr) => {
             test_eval!($func_name, stringify!($input), Value::Int($input));
-        }
+        };
     }
 
     test_eval_int!(int_add, 1 + 2);
-    test_eval_int!(multiply_higher_precedence_than_add, 2+3*4);
-    test_eval_int!(parens, (1+2)*3);
+    test_eval_int!(multiply_higher_precedence_than_add, 2 + 3 * 4);
+    test_eval_int!(parens, (1 + 2) * 3);
     test_eval_int!(negative, -1);
     test_eval_int!(bit_and, 6 & 3);
     test_eval_int!(bit_or, 1 | 2);

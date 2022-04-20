@@ -47,10 +47,10 @@ fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
 #[cfg(test)]
 mod test {
     use crate::ast::expression::{Expression, InnerExpression};
-    use crate::parse::test::parse_expression;
-    use anyhow::{anyhow, Result};
     use crate::ast::name::Name;
     use crate::ast::shortcircuitop::ShortCircuitOp;
+    use crate::parse::test::parse_expression;
+    use anyhow::{anyhow, Result};
 
     #[test]
     fn parse_name() -> Result<()> {
@@ -102,7 +102,7 @@ mod test {
     fn parse_call_with_params() -> Result<()> {
         let p = parse_expression("foo(1,2)")?;
         let e = Expression::try_from(p)?;
-        if let InnerExpression::Call {name, parameters} = e.inner {
+        if let InnerExpression::Call { name, parameters } = e.inner {
             assert_eq!(Name::from("foo"), name);
             assert_eq!(2, parameters.len());
             assert_eq!(InnerExpression::Number(1), parameters[0].inner);
@@ -119,7 +119,7 @@ mod test {
             fn $name() -> Result<()> {
                 let p = parse_expression($input)?;
                 let e = Expression::try_from(p)?;
-                if let InnerExpression::ShortCircuitOp {left, op, right} = e.inner {
+                if let InnerExpression::ShortCircuitOp { left, op, right } = e.inner {
                     assert_eq!(InnerExpression::Number($left), left.inner);
                     assert_eq!(ShortCircuitOp::$op, op);
                     assert_eq!(InnerExpression::Number($right), right.inner);
@@ -128,7 +128,7 @@ mod test {
                     Err(anyhow!("Expected {}: {:?}", $input, e))
                 }
             }
-        }
+        };
     }
 
     parse_binop!(parse_bool_or, "1 || 2", 1, LogicalOr, 2);

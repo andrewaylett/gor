@@ -26,9 +26,9 @@ mod error;
 mod eval;
 mod parse;
 
+pub use ast::Located;
 pub use eval::exec;
 pub use eval::Value;
-pub use ast::Located;
 
 #[cfg(test)]
 mod test {
