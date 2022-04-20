@@ -6,27 +6,28 @@ use crate::parse::Rule;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinOp {
+    Eq,
+    Neq,
+    Lt,
+    Leq,
+    Gt,
+    Geq,
     Add,
     Sub,
+    BitOr,
+    BitXor,
     Mul,
     Div,
-    Pow,
     Modulo,
+    Shl,
+    Shr,
+    BitAnd,
+    BitClear,
 }
 
 impl BinOp {
     pub(crate) fn static_apply(&self, l: Value, r: Value) -> Result<Value, RuntimeError> {
-        let l = l.as_int()?;
-        let r = r.as_int()?;
-        let v = match self {
-            BinOp::Add => l + r,
-            BinOp::Sub => l - r,
-            BinOp::Mul => l * r,
-            BinOp::Div => l / r,
-            BinOp::Pow => l ^ r,
-            BinOp::Modulo => l % r,
-        };
-        Ok(Value::Int(v))
+        l.bin_op(*self, r)
     }
 
     pub(crate) fn evaluate(&self, left: Value, right: Value) -> LuaResult {
@@ -39,12 +40,23 @@ impl TryFrom<Rule> for BinOp {
 
     fn try_from(value: Rule) -> std::result::Result<Self, Self::Error> {
         Ok(match value {
+            Rule::eq => BinOp::Eq,
+            Rule::neq => BinOp::Neq,
+            Rule::lt => BinOp::Lt,
+            Rule::leq => BinOp::Leq,
+            Rule::gt => BinOp::Gt,
+            Rule::geq => BinOp::Geq,
             Rule::add => BinOp::Add,
             Rule::sub => BinOp::Sub,
+            Rule::bit_or => BinOp::BitOr,
+            Rule::bit_xor => BinOp::BitXor,
             Rule::mul => BinOp::Mul,
             Rule::div => BinOp::Div,
-            Rule::pow => BinOp::Pow,
             Rule::modulo => BinOp::Modulo,
+            Rule::shl => BinOp::Shl,
+            Rule::shr => BinOp::Shr,
+            Rule::bit_and => BinOp::BitAnd,
+            Rule::bit_clear => BinOp::BitClear,
             r => return Err(AstError::InvalidRule("BinOp", r)),
         })
     }

@@ -17,7 +17,7 @@ name = @{
 }
 
 expression = {
-    term ~ (op ~ term)*
+    term ~ (binary_op ~ term)*
 }
 
 term = {
@@ -26,7 +26,7 @@ term = {
     | call
     | name
     | "(" ~ expression ~ ")"
-    | uniop
+    | unitary_op
 }
 
 string = ${
@@ -41,18 +41,37 @@ number = @{
     NUMBER+ ~ ("." ~ NUMBER*)?
 }
 
-op = _{
-    add | sub | mul | div | pow | modulo
+binary_op = _{
+// Careful with the ordering: prefix matches _last_.
+    bool_or |
+    bool_and |
+    shl | shr | leq | geq |
+    eq | neq | lt | gt |
+    add | sub | bit_or | bit_xor |
+    mul | div | modulo | bit_clear | bit_and
 }
 
+bool_and = {"&&"}
+bool_or = {"||"}
+eq = { "==" }
+neq = { "!=" }
+lt = { "<" }
+leq = { "<=" }
+gt = { ">" }
+geq = { ">=" }
 add = {"+"}
 sub = {"-"}
+bit_or = { "|" }
+bit_xor = {"^"}
 mul = {"*"}
 div = {"/"}
-pow = {"^"}
 modulo = {"%"}
+shl = { "<<" }
+shr = { ">>" }
+bit_clear = { "&^" }
+bit_and = {"&"}
 
-uniop = {
+unitary_op = {
     "-" ~ expression
 }
 
