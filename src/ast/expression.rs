@@ -4,8 +4,8 @@ use crate::ast::shortcircuitop::ShortCircuitOp;
 use crate::ast::uniop::UniOp;
 use crate::ast::Result;
 use crate::ast::{expect_rule, AstError};
-use crate::error::LuaError;
-use crate::error::LuaResult;
+use crate::error::GoError;
+use crate::error::GoResult;
 use crate::eval::Value;
 use crate::eval::{try_static_eval, ExecutionContext};
 use crate::parse::Rule;
@@ -175,7 +175,7 @@ fn term_infix<'i>(
 
 impl<'i> Expression<'i> {
     #[async_recursion]
-    pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> LuaResult {
+    pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> GoResult {
         if let Ok(r) = try_static_eval(self) {
             return Ok(r);
         }
@@ -205,7 +205,7 @@ impl<'i> Expression<'i> {
                     vector,
                     |mut r, p| {
                         r.push(p?);
-                        Ok(r) as core::result::Result<Vec<Value>, LuaError>
+                        Ok(r) as core::result::Result<Vec<Value>, GoError>
                     },
                 )?;
                 context.lookup(name)?.call(&parameters)?

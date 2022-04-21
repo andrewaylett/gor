@@ -22,7 +22,7 @@
 
 use std::path::PathBuf;
 
-use lua::{exec, Value};
+use gor::{exec, Value};
 use structopt::StructOpt;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;

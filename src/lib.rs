@@ -32,7 +32,7 @@ mod eval;
 mod parse;
 
 pub use ast::Located;
-pub use error::{LuaError, LuaResult};
+pub use error::{GoError, GoResult};
 pub use eval::exec;
 pub use eval::Value;
 

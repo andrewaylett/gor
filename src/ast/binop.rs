@@ -1,5 +1,5 @@
 use crate::ast::AstError;
-use crate::error::LuaResult;
+use crate::error::GoResult;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
 use crate::parse::Rule;
@@ -30,7 +30,7 @@ impl BinOp {
         l.bin_op(*self, r)
     }
 
-    pub(crate) fn evaluate(&self, left: Value, right: Value) -> LuaResult {
+    pub(crate) fn evaluate(&self, left: Value, right: Value) -> GoResult {
         self.static_apply(left, right).map_err(Into::into)
     }
 }

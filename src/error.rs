@@ -4,9 +4,9 @@ use crate::ast::AstError;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
 
-/// An error happened within Lua
+/// An error happened within Go
 #[derive(Error, Debug, PartialEq)]
-pub enum LuaError {
+pub enum GoError {
     /// Something went wrong at runtime
     #[error(transparent)]
     RuntimeError(#[from] RuntimeError),
@@ -17,9 +17,9 @@ pub enum LuaError {
     #[error(transparent)]
     PestError(#[from] pest::error::Error<crate::parse::Rule>),
     /// Generic something went wrong
-    #[error("Unknown Lua Error")]
+    #[error("Unknown Go Error")]
     Unknown,
 }
 
 /// The regular return type for code dealing with Go values
-pub type LuaResult = core::result::Result<Value, LuaError>;
+pub type GoResult = core::result::Result<Value, GoError>;

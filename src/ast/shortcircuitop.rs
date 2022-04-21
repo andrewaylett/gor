@@ -1,6 +1,6 @@
 use crate::ast::expression::Expression;
 use crate::ast::AstError;
-use crate::error::LuaResult;
+use crate::error::GoResult;
 use crate::eval::{ExecutionContext, RuntimeError};
 use crate::parse::Rule;
 use crate::Value;
@@ -17,7 +17,7 @@ impl ShortCircuitOp {
         left: &Expression<'i>,
         right: &Expression<'i>,
         context: &ExecutionContext,
-    ) -> LuaResult {
+    ) -> GoResult {
         let left = left.evaluate(context).await?;
         let left = left.as_bool()?;
         match self {

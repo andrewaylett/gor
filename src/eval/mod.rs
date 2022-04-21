@@ -7,7 +7,7 @@ use thiserror::Error;
 
 use crate::ast::expression::{Expression, InnerExpression};
 use crate::ast::name::Name;
-use crate::error::LuaResult;
+use crate::error::GoResult;
 use crate::eval::RuntimeError::{TypeMismatch, TypeOpMismatch};
 use crate::parse::{parse, Rule};
 
@@ -231,9 +231,9 @@ lazy_static! {
 /// Parse and execute the given Go ~module~ expression
 ///
 /// ```
-/// # use lua::LuaResult;
-/// # async fn try_main() -> LuaResult {
-/// use lua::{Value, exec};
+/// # use gor::GoResult;
+/// # async fn try_main() -> GoResult {
+/// use gor::{Value, exec};
 /// let res = exec("2 * 24").await?;
 /// assert_eq!(Value::Int(48), res);
 /// # Ok(res) // returning from try_main
@@ -243,7 +243,7 @@ lazy_static! {
 /// #    try_main().await.unwrap();
 /// # }
 /// ```
-pub async fn exec(input: &str) -> LuaResult {
+pub async fn exec(input: &str) -> GoResult {
     let p = parse(Rule::expression, input)?;
     let e = Expression::try_from(p)?;
     e.evaluate(&*GLOBAL_CONTEXT).await

@@ -1,4 +1,4 @@
-use crate::error::LuaResult;
+use crate::error::GoResult;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
 
@@ -16,7 +16,7 @@ impl UniOp {
         Ok(Value::Int(v))
     }
 
-    pub(crate) fn evaluate(&self, value: Value) -> LuaResult {
+    pub(crate) fn evaluate(&self, value: Value) -> GoResult {
         self.static_apply(value).map_err(Into::into)
     }
 }
