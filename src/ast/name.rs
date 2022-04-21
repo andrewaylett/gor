@@ -29,13 +29,12 @@ impl From<&'_ str> for Name {
         let mut lock = STRINGS.lock().unwrap();
         let key = name.to_string();
         let intern = lock.get(&key);
-        let value;
-        if let Some(&s) = intern {
-            value = s;
+        let value = if let Some(&s) = intern {
+            s
         } else {
             let boxed = Box::new(key);
-            value = Box::leak(boxed);
-        }
+            Box::leak(boxed)
+        };
         lock.insert(value);
         Name(value)
     }

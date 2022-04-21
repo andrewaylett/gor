@@ -214,9 +214,7 @@ pub(crate) struct ExecutionContext {
 
 impl ExecutionContext {
     pub(crate) fn lookup(&self, name: &Name) -> Result<&Value> {
-        self.globals
-            .get(name)
-            .ok_or_else(|| RuntimeError::NameError(*name))
+        self.globals.get(name).ok_or(RuntimeError::NameError(*name))
     }
 }
 
