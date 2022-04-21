@@ -42,24 +42,4 @@ impl From<&'_ str> for Name {
 }
 
 #[cfg(test)]
-mod test {
-    use crate::ast::name::Name;
-
-    #[test]
-    fn interns_strings() {
-        let one: Name = "foo".into();
-        let two: Name = "foo".into();
-        let ptr_one: *const String = one.0;
-        let ptr_two: *const String = two.0;
-        assert_eq!(ptr_one, ptr_two)
-    }
-
-    #[test]
-    fn mismatched_strings() {
-        let one: Name = "foo".into();
-        let two: Name = "bar".into();
-        let ptr_one: *const String = one.0;
-        let ptr_two: *const String = two.0;
-        assert_ne!(ptr_one, ptr_two)
-    }
-}
+mod test;

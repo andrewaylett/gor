@@ -158,21 +158,18 @@ fn term_infix<'i>(
     let op = op.as_rule();
     let left = Box::new(left);
     let right = Box::new(right);
-    match op {
-        Rule::bool_and | Rule::bool_or => {
-            let op = op.try_into()?;
-            Ok(Expression::new(
-                span,
-                InnerExpression::ShortCircuitOp { left, op, right },
-            ))
-        }
-        _ => {
-            let op = op.try_into()?;
-            Ok(Expression::new(
-                span,
-                InnerExpression::BinOp { left, op, right },
-            ))
-        }
+    if let Ok(op) = op.try_into() {
+        Ok(Expression::new(
+            span,
+            InnerExpression::ShortCircuitOp { left, op, right },
+        ))
+    } else if let Ok(op) = op.try_into() {
+        Ok(Expression::new(
+            span,
+            InnerExpression::BinOp { left, op, right },
+        ))
+    } else {
+        Err(AstError::InvalidRule("ShortCircuitOp or BinOp", op))
     }
 }
 

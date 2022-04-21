@@ -19,7 +19,7 @@
     while_true,
     clippy::expect_used
 )]
-#![deny(unsafe_code)]
+#![forbid(unsafe_code)]
 
 mod ast;
 mod error;
@@ -35,9 +35,9 @@ mod test {
     use anyhow::Result;
 
     use crate::ast::expression::Expression;
+    use crate::eval::test::parse_expression;
     use crate::eval::try_static_eval;
     use crate::eval::Value;
-    use crate::parse::test::parse_expression;
 
     #[test]
     fn static_eval_int_addition() -> Result<()> {

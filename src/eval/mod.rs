@@ -11,7 +11,10 @@ use crate::error::LuaResult;
 use crate::eval::RuntimeError::{TypeMismatch, TypeOpMismatch};
 use crate::parse::{parse, Rule};
 
-#[derive(Error, Debug)]
+#[cfg(test)]
+pub(crate) mod test;
+
+#[derive(Error, Debug, PartialEq)]
 pub enum RuntimeError {
     #[error("Not a function: {0:?}")]
     NotAFunction(Value),

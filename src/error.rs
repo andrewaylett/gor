@@ -4,7 +4,7 @@ use crate::ast::AstError;
 use crate::eval::RuntimeError;
 use crate::eval::Value;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, PartialEq)]
 pub enum LuaError {
     #[error(transparent)]
     RuntimeError(#[from] RuntimeError),

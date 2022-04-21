@@ -30,7 +30,7 @@ impl ShortCircuitOp {
         }
     }
 
-    pub(crate) fn static_apply<'i>(
+    pub(crate) fn static_apply(
         &self,
         left: Value,
         right: impl FnOnce() -> Result<Value, RuntimeError>,
