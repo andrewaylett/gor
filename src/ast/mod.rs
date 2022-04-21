@@ -23,7 +23,15 @@ pub enum AstError {
 
 type Result<R> = core::result::Result<R, AstError>;
 
+/// Indicates an element is derived from source.
+///
+/// You may obtain the relevant source for objects that implement this trait, for example in order
+/// to print pretty errors.
 pub trait Located {
+    /// The [Pest] [Span] that represents the source for this object.
+    ///
+    /// [Pest]: https://docs.rs/pest/latest/pest/
+    /// [Span]: https://docs.rs/pest/latest/pest/struct.Span.html
     fn as_span(&self) -> Span;
 }
 

@@ -1,3 +1,5 @@
+use pretty_assertions::{assert_eq, assert_ne};
+
 use crate::ast::name::Name;
 
 #[test]

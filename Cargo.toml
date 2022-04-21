@@ -18,3 +18,6 @@ lazy_static = "1.4.0"
 futures = "0.3.19"
 
 structopt = "0.3.25"
+
+[dev-dependencies]
+pretty_assertions = "1.2.1"

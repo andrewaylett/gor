@@ -1,6 +1,7 @@
 use crate::ast::expression::Expression;
 use anyhow::{Context, Result};
 use pest::iterators::Pairs;
+use pretty_assertions::assert_eq;
 
 use crate::eval::{try_static_eval, Value, GLOBAL_CONTEXT};
 use crate::parse::parse;

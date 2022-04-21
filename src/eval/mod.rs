@@ -41,12 +41,20 @@ pub enum Type {
     Void,
 }
 
+/// A primative value that may be the result of a Go [expression].
+///
+/// [expression]: ../ast/expression.html
 #[derive(Debug, PartialEq, Clone)]
 pub enum Value {
+    /// A 64-bit signed int
     Int(i64),
+    /// A boolean
     Boolean(bool),
+    /// A string literal
     String(String),
+    /// An intrinsic -- globally scoped, known to Rust code.
     Intrinsic(Intrinsic),
+    /// The "bottom" type, no value.
     Void,
 }
 
@@ -68,6 +76,7 @@ impl Display for Value {
 }
 
 impl Value {
+    /// Acquire the type of the value
     pub const fn as_type(&self) -> Type {
         match self {
             Value::Int(_) => Type::Int,
@@ -78,6 +87,7 @@ impl Value {
         }
     }
 
+    /// If this value is able to be represented as a signed integer, return it.
     pub const fn as_int(&self) -> Result<i64> {
         match self {
             Value::Int(n) => Ok(*n),
@@ -89,6 +99,7 @@ impl Value {
         }
     }
 
+    /// If this value is able to be represented as a boolean, return it.
     pub const fn as_bool(&self) -> Result<bool> {
         match self {
             Value::Int(n) => Ok(*n != 0),
@@ -100,6 +111,7 @@ impl Value {
         }
     }
 
+    /// If this value has function type, apply the parameters to the function
     pub fn call(&self, parameters: &[Value]) -> Result<Value> {
         if let Value::Intrinsic(function) = self {
             match function {
@@ -114,6 +126,7 @@ impl Value {
         }
     }
 
+    /// Attempt to apply `right` to this value using `op`.
     pub fn bin_op(self, op: BinOp, right: Value) -> Result<Value> {
         if self.as_type() != right.as_type() {
             return Err(TypeMismatch {
@@ -215,6 +228,21 @@ lazy_static! {
     };
 }
 
+/// Parse and execute the given Go ~module~ expression
+///
+/// ```
+/// # use lua::LuaResult;
+/// # async fn try_main() -> LuaResult {
+/// use lua::{Value, exec};
+/// let res = exec("2 * 24").await?;
+/// assert_eq!(Value::Int(48), res);
+/// # Ok(res) // returning from try_main
+/// # }
+/// # #[tokio::main]
+/// # async fn main() {
+/// #    try_main().await.unwrap();
+/// # }
+/// ```
 pub async fn exec(input: &str) -> LuaResult {
     let p = parse(Rule::expression, input)?;
     let e = Expression::try_from(p)?;

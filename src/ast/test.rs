@@ -3,6 +3,7 @@ use crate::ast::name::Name;
 use crate::ast::shortcircuitop::ShortCircuitOp;
 use crate::eval::test::parse_expression;
 use anyhow::{anyhow, Result};
+use pretty_assertions::assert_eq;
 
 #[test]
 fn parse_name() -> Result<()> {

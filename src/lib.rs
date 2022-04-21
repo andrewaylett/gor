@@ -4,6 +4,7 @@
     dead_code,
     improper_ctypes,
     missing_debug_implementations,
+    missing_docs,
     no_mangle_generic_items,
     non_shorthand_field_patterns,
     overflowing_literals,
@@ -21,18 +22,24 @@
 )]
 #![forbid(unsafe_code)]
 
+//! An implementation of Go, written as an interpreter in Rust.
+//!
+//! We provide a binary as well as this library.
+
 mod ast;
 mod error;
 mod eval;
 mod parse;
 
 pub use ast::Located;
+pub use error::{LuaError, LuaResult};
 pub use eval::exec;
 pub use eval::Value;
 
 #[cfg(test)]
 mod test {
     use anyhow::Result;
+    use pretty_assertions::assert_eq;
 
     use crate::ast::expression::Expression;
     use crate::eval::test::parse_expression;
