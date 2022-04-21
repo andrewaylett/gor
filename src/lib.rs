@@ -36,22 +36,30 @@ pub use error::{GoError, GoResult};
 pub use eval::exec;
 pub use eval::Value;
 
-#[cfg(test)]
-mod test {
-    use anyhow::Result;
-    use pretty_assertions::assert_eq;
+/// Utilities for integration testing
+#[doc(hidden)]
+pub mod test {
+    use std::fs::read_to_string;
+    use std::path::PathBuf;
 
-    use crate::ast::expression::Expression;
-    use crate::eval::test::parse_expression;
-    use crate::eval::try_static_eval;
-    use crate::eval::Value;
+    use crate::parse::parse;
+    use crate::parse::Rule;
 
-    #[test]
-    fn static_eval_int_addition() -> Result<()> {
-        let parse = parse_expression("1+2")?;
-        let exp: Expression = parse.try_into()?;
-        let result = try_static_eval(&exp)?;
-        assert_eq!(result, Value::Int(3));
-        Ok(())
+    /// Called by generated integration tests
+    #[doc(hidden)]
+    pub async fn test_go_file<T: Into<PathBuf>>(path: T) {
+        let path: PathBuf = path.into();
+        let input = read_to_string(path);
+        match input {
+            Ok(input) => {
+                let parse = parse(Rule::module, &input);
+                if let Err(e) = parse {
+                    panic!("Parse failed: {}", e);
+                }
+            }
+            Err(err) => {
+                panic!("Failed to read input: {}", err);
+            }
+        }
     }
 }

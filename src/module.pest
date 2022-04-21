@@ -4,11 +4,17 @@
 // Author: axa
 //
 
-module = { SOI ~ (statement ~ ";")* ~ EOI }
+module = { SOI ~ statements ~ EOI }
+
+statements = { (statement)* }
 
 statement = {
-    assignment | expression
+    package | import | func | assignment | expression
 }
+
+package = { "package" ~ name }
+import = { "import" ~ string }
+func = { "func" ~ call ~ "{" ~ statements ~ "}" }
 
 assignment = { name ~ "=" ~ expression }
 
@@ -48,7 +54,8 @@ binary_op = _{
     shl | shr | leq | geq |
     eq | neq | lt | gt |
     add | sub | bit_or | bit_xor |
-    mul | div | modulo | bit_clear | bit_and
+    mul | div | modulo | bit_clear | bit_and |
+    dot
 }
 
 bool_and = {"&&"}
@@ -69,7 +76,8 @@ modulo = {"%"}
 shl = { "<<" }
 shr = { ">>" }
 bit_clear = { "&^" }
-bit_and = {"&"}
+bit_and = { "&" }
+dot = { "." }
 
 unitary_op = {
     "-" ~ expression
@@ -80,7 +88,7 @@ call = {
 }
 
 WHITESPACE = _{
-    SEPARATOR
+    SEPARATOR | "\n"
 }
 
 COMMENT = _{

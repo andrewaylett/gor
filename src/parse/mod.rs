@@ -38,6 +38,7 @@ lazy_static! {
     //  |    1       |    ||                     |
     /// +------------+---------------------------+
     pub static ref PRECEDENCE: PrecClimber<Rule> = PrecClimber::new(vec![
+        l!(dot),
         l!(bool_or),
         l!(bool_and),
         l!(eq) | l!(neq) | l!(lt) | l!(leq) | l!(gt) | l!(geq),

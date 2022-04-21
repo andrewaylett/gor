@@ -76,16 +76,11 @@ fn generate_test_for_file(
     modules.push(basename.to_string());
     let output_path = out.with_file_name(basename).with_extension("rs");
     let mut file = File::create(&output_path)?;
-    writeln!(file, "use gor::exec;")?;
+    writeln!(file, "use gor::test::test_go_file;")?;
     writeln!(file)?;
     writeln!(file, "#[tokio::test]")?;
-    writeln!(file, "#[should_panic = \"Expected Failure\"]")?;
-    writeln!(file, "async fn try_to_exec() {{")?;
-    writeln!(
-        file,
-        "    exec(include_str!({:?})).await.expect(\"Expected Failure\");",
-        include_file
-    )?;
+    writeln!(file, "async fn go_file() {{")?;
+    writeln!(file, "    test_go_file({:?}).await;", include_file)?;
     writeln!(file, "}}")?;
 
     Ok(())
