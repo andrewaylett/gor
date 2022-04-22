@@ -50,20 +50,22 @@ type AstResult<R> = core::result::Result<R, AstError>;
 ///
 /// You may obtain the relevant source for objects that implement this trait, for example in order
 /// to print pretty errors.
-pub trait Located {
+pub trait Located<'i> {
     /// The [Pest] [Span] that represents the source for this object.
     ///
     /// [Pest]: https://docs.rs/pest/latest/pest/
     /// [Span]: https://docs.rs/pest/latest/pest/struct.Span.html
-    fn as_span(&self) -> Span;
+    fn as_span(&self) -> Span<'i>;
 }
 
-pub mod binop;
+pub mod binary_op;
 pub mod expression;
+pub mod func;
 pub mod module;
 pub mod name;
-pub mod shortcircuitop;
-pub mod uniop;
+pub mod short_circuit_op;
+pub mod statement;
+pub mod unitary_op;
 
 fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> AstResult<()> {
     if pair.as_rule() == rule {

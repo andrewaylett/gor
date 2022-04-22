@@ -1,10 +1,15 @@
-//
-// Created by intellij-pest on 2022-01-01
-// module
-// Author: axa
-//
+// Go module syntax.
+// Reference https://go.dev/ref/spec
 
-module = { SOI ~ package ~ import* ~ statement* ~ EOI }
+module = { SOI ~ package ~ import* ~ top_level* ~ EOI }
+
+top_level = _{
+    func
+}
+
+block = {
+    "{" ~ statement* ~ "}"
+}
 
 statement = {
     func | assignment | expression
@@ -12,7 +17,23 @@ statement = {
 
 package = { "package" ~ name }
 import = { "import" ~ string }
-func = { "func" ~ call ~ "{" ~ statement* ~ "}" }
+func = { "func" ~ name ~ type_params? ~ signature ~ block }
+
+type_params = {
+    "[" ~ (!"]" ~ ANY)* ~ "]"
+}
+
+signature = {
+    "(" ~ params ~ ")" ~ name?
+}
+
+params = {
+    (param ~ ("," ~ param)* ~ ","?)?
+}
+
+param = {
+    name ~ name
+}
 
 assignment = { name ~ "=" ~ expression }
 
@@ -98,5 +119,5 @@ inline_comment = {
 }
 
 end_of_line_comment = {
-    "//" ~ (!"\n" ~ ANY)
+    "//" ~ (!"\n" ~ ANY)*
 }

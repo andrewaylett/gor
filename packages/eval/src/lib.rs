@@ -21,7 +21,7 @@
 )]
 #![forbid(unsafe_code)]
 
-use gor_ast::binop::BinOp;
+use gor_ast::binary_op::BinOp;
 use lazy_static::lazy_static;
 use std::any::Any;
 use std::collections::HashMap;

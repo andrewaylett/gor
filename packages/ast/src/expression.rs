@@ -1,7 +1,7 @@
-use crate::binop::BinOp;
+use crate::binary_op::BinOp;
 use crate::name::Name;
-use crate::shortcircuitop::ShortCircuitOp;
-use crate::uniop::UniOp;
+use crate::short_circuit_op::ShortCircuitOp;
+use crate::unitary_op::UniOp;
 use crate::AstResult;
 use crate::{expect_rule, AstError};
 use gor_parse::Rule;
@@ -108,7 +108,7 @@ fn term_primary(pair: Pair<Rule>) -> AstResult<Expression> {
         }
         Rule::number => InnerExpression::Number(next.as_str().parse()?),
         Rule::expression => InnerExpression::try_from(next)?,
-        Rule::name => InnerExpression::Name(next.as_str().into()),
+        Rule::name => InnerExpression::Name(next.try_into()?),
         Rule::unitary_op => {
             let expr = next.into_inner();
             InnerExpression::UniOp {

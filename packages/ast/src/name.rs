@@ -1,4 +1,7 @@
+use crate::{expect_rule, AstError, AstResult};
+use gor_parse::Rule;
 use lazy_static::lazy_static;
+use pest::iterators::Pair;
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -55,6 +58,15 @@ impl From<&'_ str> for Name {
             leaked
         };
         Name(value)
+    }
+}
+
+impl TryFrom<Pair<'_, Rule>> for Name {
+    type Error = AstError;
+
+    fn try_from(pair: Pair<Rule>) -> AstResult<Self> {
+        expect_rule(&pair, Rule::name)?;
+        Ok(pair.as_str().into())
     }
 }
 

@@ -1,6 +1,6 @@
 use crate::expression::{Expression, InnerExpression};
 use crate::name::Name;
-use crate::shortcircuitop::ShortCircuitOp;
+use crate::short_circuit_op::ShortCircuitOp;
 use anyhow::{anyhow, Context, Result};
 use gor_parse::{parse, Rule};
 use pest::iterators::Pairs;
@@ -100,7 +100,7 @@ parse_short_circuit_binop!(parse_bool_and, "1 && 2", 1, LogicalAnd, 2);
 #[allow(non_snake_case)]
 mod binop {
     use super::parse_expression;
-    use crate::binop::BinOp;
+    use crate::binary_op::BinOp;
     use crate::expression::{Expression, InnerExpression};
     use anyhow::{anyhow, Result};
 

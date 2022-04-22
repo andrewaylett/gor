@@ -1,10 +1,10 @@
 use crate::{try_static_eval, EvalResult, ExecutionContext, RuntimeError, Value};
 use async_trait::async_trait;
 use futures::future::join_all;
-use gor_ast::binop::BinOp;
+use gor_ast::binary_op::BinOp;
 use gor_ast::expression::{Expression, InnerExpression};
-use gor_ast::shortcircuitop::ShortCircuitOp;
-use gor_ast::uniop::UniOp;
+use gor_ast::short_circuit_op::ShortCircuitOp;
+use gor_ast::unitary_op::UniOp;
 use tokio::join;
 
 pub(crate) trait BinOpExt {

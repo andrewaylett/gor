@@ -1,3 +1,4 @@
+use crate::func::SourceFunction;
 use crate::name::Name;
 use crate::{expect_rule, AstError, AstResult};
 use gor_parse::Rule;
@@ -5,17 +6,17 @@ use pest::iterators::{Pair, Pairs};
 use std::collections::HashMap;
 use std::fmt::Debug;
 
-trait Member: Debug {}
+pub(crate) trait Member: Debug {}
 
 #[allow(dead_code)]
 #[derive(Debug)]
-pub struct Module {
+pub struct Module<'i> {
     package: Name,
     imports: Vec<Name>,
-    members: HashMap<Name, Box<dyn Member>>,
+    members: HashMap<Name, Box<dyn Member + 'i>>,
 }
 
-impl<'i> TryFrom<Pairs<'i, Rule>> for Module {
+impl<'i> TryFrom<Pairs<'i, Rule>> for Module<'i> {
     type Error = AstError;
 
     fn try_from(mut pairs: Pairs<'i, Rule>) -> super::AstResult<Self> {
@@ -33,22 +34,22 @@ impl<'i> TryFrom<Pairs<'i, Rule>> for Module {
     }
 }
 
-impl TryFrom<Pair<'_, Rule>> for Module {
+impl<'i> TryFrom<Pair<'i, Rule>> for Module<'i> {
     type Error = AstError;
 
-    fn try_from(module: Pair<Rule>) -> AstResult<Self> {
+    fn try_from(module: Pair<'i, Rule>) -> AstResult<Self> {
         expect_rule(&module, Rule::module)?;
         primary(module)
     }
 }
 
-fn primary(module: Pair<Rule>) -> AstResult<Module> {
+fn primary<'i>(module: Pair<'i, Rule>) -> AstResult<Module<'i>> {
     expect_rule(&module, Rule::module)?;
 
-    let inner = module.into_inner();
+    let inner: Pairs<'i, Rule> = module.into_inner();
     let mut package = None;
     let mut imports = vec![];
-    let members = HashMap::new();
+    let mut members: HashMap<Name, Box<dyn Member + 'i>> = HashMap::new();
     for pair in inner {
         match pair.as_rule() {
             Rule::package => {
@@ -73,7 +74,10 @@ fn primary(module: Pair<Rule>) -> AstResult<Module> {
                     ))?;
                 imports.push(Name::from(name.as_str()));
             }
-            Rule::statement => {}
+            Rule::func => {
+                let func = SourceFunction::try_from(pair)?;
+                members.insert(func.name, Box::new(func));
+            }
             Rule::EOI => {}
             r => return Err(AstError::InvalidRule("module contents", r)),
         }
