@@ -1,10 +1,11 @@
 use lazy_static::lazy_static;
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::Mutex;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Debug)]
 pub struct Name(&'static String);
 
 lazy_static! {
@@ -21,6 +22,22 @@ impl Deref for Name {
     type Target = str;
     fn deref(&self) -> &str {
         self.0
+    }
+}
+
+impl PartialEq for Name {
+    fn eq(&self, other: &Self) -> bool {
+        let ptr_self: *const String = self.0;
+        let ptr_other: *const String = other.0;
+        ptr_self == ptr_other
+    }
+}
+
+impl Eq for Name {}
+
+impl Hash for Name {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
     }
 }
 
