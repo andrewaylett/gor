@@ -5,15 +5,18 @@ edition = "2021"
 rust-version = "1.56"
 
 authors = ["Andrew Aylett <andrew@aylett.co.uk>"]
+license = "Apache-2.0"
+description = "An implementation of Go, as an interpreter written in Rust"
+repository = "https://github.com/andrewaylett/gor"
 
 [workspace]
-members = ["packages/*"]
-default-members = ["packages/*"]
+members = [".", "packages/*"]
+default-members = [".", "packages/*"]
 
 [dependencies]
-gor-ast = { path="packages/ast" }
-gor-parse = { path="packages/parse" }
-gor-eval = { path="packages/eval" }
+gor-ast = { version="0.1.0", path="packages/ast" }
+gor-parse = { version="0.1.0", path="packages/parse" }
+gor-eval = { version="0.1.0", path="packages/eval" }
 
 tokio = { version = "^1.15.0", features = ["full", "tracing"] }
 pest = "2.1.3"

@@ -26,14 +26,25 @@ jobs:
           components: rustfmt, clippy
 
       - uses: actions/cache@v3
+        id: cache-registry
         with:
           path: |
-            ~/.cargo/bin/
             ~/.cargo/registry/index/
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('~/.cargo/registry/index/**') }}-${{ hashFiles('~/.cargo/registry/cache/**') }}-${{ hashFiles('~/.cargo/git/db/**') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      - uses: actions/cache@v3
+        id: cache-toolchain-dependent
+        with:
+          path: |
+            ~/.cargo/bin/
             target/
-          key: ${{ runner.os }}-cargo-${{ steps.toolchain.outputs.rustc_hash }}
+          key: ${{ runner.os }}-cargo-${{ steps.toolchain.outputs.rustc_hash }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-${{ steps.toolchain.outputs.rustc_hash }}-
 
       - uses: actions-rs/cargo@v1
         with:
