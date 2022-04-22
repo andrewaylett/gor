@@ -50,9 +50,10 @@ impl From<&'_ str> for Name {
             s
         } else {
             let boxed = Box::new(key);
-            Box::leak(boxed)
+            let leaked: &'static String = Box::leak(boxed);
+            lock.insert(leaked);
+            leaked
         };
-        lock.insert(value);
         Name(value)
     }
 }
