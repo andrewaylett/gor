@@ -12,20 +12,33 @@ jobs:
           - stable
           - beta
           - nightly
+          - 1.56.0
 
     steps:
       - uses: actions/checkout@v2
 
       - uses: actions-rs/toolchain@v1
+        id: toolchain
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
           components: rustfmt, clippy
 
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ steps.toolchain.outputs.rustc_hash }}
+
       - uses: actions-rs/cargo@v1
         with:
           command: build
+          args: --locked --all-targets
 
       - uses: actions-rs/cargo@v1
         with:
