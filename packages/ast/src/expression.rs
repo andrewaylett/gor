@@ -1,26 +1,19 @@
-use crate::ast::binop::BinOp;
-use crate::ast::name::Name;
-use crate::ast::shortcircuitop::ShortCircuitOp;
-use crate::ast::uniop::UniOp;
-use crate::ast::Result;
-use crate::ast::{expect_rule, AstError};
-use crate::error::GoError;
-use crate::error::GoResult;
-use crate::eval::Value;
-use crate::eval::{try_static_eval, ExecutionContext};
-use crate::parse::Rule;
-use crate::parse::PRECEDENCE;
-use async_recursion::async_recursion;
-use futures::future::join_all;
+use crate::binop::BinOp;
+use crate::name::Name;
+use crate::shortcircuitop::ShortCircuitOp;
+use crate::uniop::UniOp;
+use crate::AstResult;
+use crate::{expect_rule, AstError};
+use gor_parse::Rule;
+use gor_parse::PRECEDENCE;
 use pest::iterators::{Pair, Pairs};
 use pest::Span;
-use tokio::join;
 
 #[must_use = "expressions are side-effect free unless evaluated"]
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Expression<'i> {
-    pub(crate) inner: InnerExpression<'i>,
-    pub(crate) span: Span<'i>,
+pub struct Expression<'i> {
+    pub inner: InnerExpression<'i>,
+    pub span: Span<'i>,
 }
 
 impl Expression<'_> {
@@ -31,7 +24,7 @@ impl Expression<'_> {
 
 #[must_use = "expressions are side-effect free unless evaluated"]
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) enum InnerExpression<'i> {
+pub enum InnerExpression<'i> {
     BinOp {
         left: Box<Expression<'i>>,
         op: BinOp,
@@ -58,7 +51,7 @@ pub(crate) enum InnerExpression<'i> {
 impl<'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
     type Error = AstError;
 
-    fn try_from(mut pairs: Pairs<'i, Rule>) -> super::Result<Self> {
+    fn try_from(mut pairs: Pairs<'i, Rule>) -> super::AstResult<Self> {
         let expression = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get an expression, but found nothing to parse",
         ))?;
@@ -77,7 +70,7 @@ impl<'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
 impl<'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
     type Error = AstError;
 
-    fn try_from(expression: Pair<'i, Rule>) -> Result<Self> {
+    fn try_from(expression: Pair<'i, Rule>) -> AstResult<Self> {
         expect_rule(&expression, Rule::expression)?;
         let span = expression.as_span();
         let item = term_precedence(expression.into_inner())?;
@@ -92,11 +85,11 @@ impl<'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
     }
 }
 
-fn term_precedence(pairs: Pairs<Rule>) -> Result<Expression> {
+fn term_precedence(pairs: Pairs<Rule>) -> AstResult<Expression> {
     PRECEDENCE.climb(pairs, term_primary, term_infix)
 }
 
-fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
+fn term_primary(pair: Pair<Rule>) -> AstResult<Expression> {
     expect_rule(&pair, Rule::term)?;
     let span = pair.as_span();
     let inner = pair.into_inner();
@@ -136,7 +129,7 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
                     span,
                     InnerExpression::try_from(expression)?,
                 ));
-                Ok(result) as Result<Vec<Expression>>
+                Ok(result) as AstResult<Vec<Expression>>
             })?;
             InnerExpression::Call { name, parameters }
         }
@@ -146,10 +139,10 @@ fn term_primary(pair: Pair<Rule>) -> Result<Expression> {
 }
 
 fn term_infix<'i>(
-    left: Result<Expression<'i>>,
+    left: AstResult<Expression<'i>>,
     op: Pair<'i, Rule>,
-    right: Result<Expression<'i>>,
-) -> Result<Expression<'i>> {
+    right: AstResult<Expression<'i>>,
+) -> AstResult<Expression<'i>> {
     let left = left?;
     let right = right?;
     let start = left.span.start_pos();
@@ -170,46 +163,5 @@ fn term_infix<'i>(
         ))
     } else {
         Err(AstError::InvalidRule("ShortCircuitOp or BinOp", op))
-    }
-}
-
-impl<'i> Expression<'i> {
-    #[async_recursion]
-    pub(crate) async fn evaluate(&self, context: &ExecutionContext) -> GoResult {
-        if let Ok(r) = try_static_eval(self) {
-            return Ok(r);
-        }
-
-        Ok(match &self.inner {
-            InnerExpression::BinOp { left, op, right } => {
-                let left = left.evaluate(context);
-                let right = right.evaluate(context);
-                let (left, right) = join!(left, right);
-                op.evaluate(left?, right?)?
-            }
-            InnerExpression::ShortCircuitOp { left, op, right } => {
-                op.evaluate(left, right, context).await?
-            }
-            InnerExpression::String(s) => Value::String(s.to_owned()),
-            InnerExpression::Number(n) => Value::Int(*n),
-            InnerExpression::Name(n) => context.lookup(n)?.clone(),
-            InnerExpression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
-            InnerExpression::Call { name, parameters } => {
-                let parameter_futures: Vec<_> = parameters
-                    .iter()
-                    .map(|expr| expr.evaluate(context))
-                    .collect();
-                let mut vector = vec![];
-                vector.reserve_exact(parameters.len());
-                let parameters = join_all(parameter_futures).await.into_iter().try_fold(
-                    vector,
-                    |mut r, p| {
-                        r.push(p?);
-                        Ok(r) as core::result::Result<Vec<Value>, GoError>
-                    },
-                )?;
-                context.lookup(name)?.call(&parameters)?
-            }
-        })
     }
 }

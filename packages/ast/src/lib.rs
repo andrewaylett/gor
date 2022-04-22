@@ -1,3 +1,26 @@
+#![deny(
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    missing_debug_implementations,
+    no_mangle_generic_items,
+    non_shorthand_field_patterns,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unreachable_pub,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    clippy::expect_used
+)]
+#![forbid(unsafe_code)]
+
 use std::fmt::Debug;
 use std::num::ParseIntError;
 
@@ -5,7 +28,7 @@ use pest::iterators::Pair;
 use pest::Span;
 use thiserror::Error;
 
-use crate::parse::Rule;
+use gor_parse::Rule;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum AstError {
@@ -21,7 +44,7 @@ pub enum AstError {
     IntError(#[from] ParseIntError),
 }
 
-type Result<R> = core::result::Result<R, AstError>;
+type AstResult<R> = core::result::Result<R, AstError>;
 
 /// Indicates an element is derived from source.
 ///
@@ -35,13 +58,14 @@ pub trait Located {
     fn as_span(&self) -> Span;
 }
 
-pub(crate) mod binop;
-pub(crate) mod expression;
-pub(crate) mod name;
-mod shortcircuitop;
-mod uniop;
+pub mod binop;
+pub mod expression;
+pub mod module;
+pub mod name;
+pub mod shortcircuitop;
+pub mod uniop;
 
-fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> Result<()> {
+fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> AstResult<()> {
     if pair.as_rule() == rule {
         Ok(())
     } else {

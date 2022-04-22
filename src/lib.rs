@@ -26,24 +26,22 @@
 //!
 //! We provide a binary as well as this library.
 
-mod ast;
-mod error;
-mod eval;
-mod parse;
+/// Errors
+pub mod error;
 
-pub use ast::Located;
-pub use error::{GoError, GoResult};
-pub use eval::exec;
-pub use eval::Value;
+pub use gor_ast::Located;
+pub use gor_eval::exec;
+pub use gor_eval::Value;
 
 /// Utilities for integration testing
 #[doc(hidden)]
 pub mod test {
+    use gor_ast::module::Module;
     use std::fs::read_to_string;
     use std::path::PathBuf;
 
-    use crate::parse::parse;
-    use crate::parse::Rule;
+    use gor_parse::parse;
+    use gor_parse::Rule;
 
     /// Called by generated integration tests
     #[doc(hidden)]
@@ -53,8 +51,16 @@ pub mod test {
         match input {
             Ok(input) => {
                 let parse = parse(Rule::module, &input);
-                if let Err(e) = parse {
-                    panic!("Parse failed: {}", e);
+                match parse {
+                    Err(e) => {
+                        panic!("Parse failed: {}", e);
+                    }
+                    Ok(pairs) => {
+                        let module = Module::try_from(pairs);
+                        if let Err(e) = module {
+                            panic!("AST failed: {:?}", e);
+                        }
+                    }
                 }
             }
             Err(err) => {

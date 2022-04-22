@@ -1,10 +1,33 @@
+#![deny(
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    missing_debug_implementations,
+    no_mangle_generic_items,
+    non_shorthand_field_patterns,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unreachable_pub,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    clippy::expect_used
+)]
+#![forbid(unsafe_code)]
+
 use lazy_static::lazy_static;
-use pest::error::Error;
 use pest::iterators::Pairs;
 use pest::prec_climber::{Assoc, Operator, PrecClimber};
 use pest::Parser;
+use thiserror::Error;
 
-use crate::parse::implementation::ModuleParser;
+use implementation::ModuleParser;
 
 mod implementation {
     use pest_derive::Parser;
@@ -13,10 +36,16 @@ mod implementation {
     pub(crate) struct ModuleParser;
 }
 
-pub(crate) use implementation::Rule;
+pub use implementation::Rule;
 
-pub(crate) fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, Error<Rule>> {
-    ModuleParser::parse(rule, input)
+#[derive(Error, Debug, PartialEq)]
+pub enum ParseError {
+    #[error(transparent)]
+    PestError(#[from] pest::error::Error<Rule>),
+}
+
+pub fn parse(rule: Rule, input: &str) -> Result<Pairs<Rule>, ParseError> {
+    Ok(ModuleParser::parse(rule, input)?)
 }
 
 macro_rules! l {

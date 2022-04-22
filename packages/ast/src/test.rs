@@ -1,9 +1,19 @@
-use crate::ast::expression::{Expression, InnerExpression};
-use crate::ast::name::Name;
-use crate::ast::shortcircuitop::ShortCircuitOp;
-use crate::eval::test::parse_expression;
-use anyhow::{anyhow, Result};
+use crate::expression::{Expression, InnerExpression};
+use crate::name::Name;
+use crate::shortcircuitop::ShortCircuitOp;
+use anyhow::{anyhow, Context, Result};
+use gor_parse::{parse, Rule};
+use pest::iterators::Pairs;
 use pretty_assertions::assert_eq;
+
+#[track_caller]
+fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
+    let p = parse(Rule::expression, input)?;
+    let first = p.peek().context("Expected a parse")?;
+    assert_eq!(first.as_span().start(), 0);
+    assert_eq!(first.as_span().end(), input.len());
+    Ok(p)
+}
 
 #[test]
 fn parse_name() -> Result<()> {
@@ -89,9 +99,9 @@ parse_short_circuit_binop!(parse_bool_and, "1 && 2", 1, LogicalAnd, 2);
 
 #[allow(non_snake_case)]
 mod binop {
-    use crate::ast::binop::BinOp;
-    use crate::ast::expression::{Expression, InnerExpression};
-    use crate::eval::test::parse_expression;
+    use super::parse_expression;
+    use crate::binop::BinOp;
+    use crate::expression::{Expression, InnerExpression};
     use anyhow::{anyhow, Result};
 
     macro_rules! parse_binop {

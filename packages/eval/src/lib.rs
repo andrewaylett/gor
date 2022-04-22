@@ -1,18 +1,44 @@
-use crate::ast::binop::BinOp;
+#![deny(
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    missing_debug_implementations,
+    no_mangle_generic_items,
+    non_shorthand_field_patterns,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unreachable_pub,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    clippy::expect_used
+)]
+#![forbid(unsafe_code)]
+
+use gor_ast::binop::BinOp;
 use lazy_static::lazy_static;
 use std::any::Any;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter};
 use thiserror::Error;
 
-use crate::ast::expression::{Expression, InnerExpression};
-use crate::ast::name::Name;
-use crate::error::GoResult;
-use crate::eval::RuntimeError::{TypeMismatch, TypeOpMismatch};
-use crate::parse::{parse, Rule};
+use gor_ast::expression::{Expression, InnerExpression};
+use gor_ast::name::Name;
+use gor_parse::{parse, ParseError, Rule};
+use RuntimeError::{TypeMismatch, TypeOpMismatch};
+
+use crate::extensions::{Evaluable, ShortCircuitOpExt, UniOpExt};
+use extensions::BinOpExt;
+use gor_ast::AstError;
 
 #[cfg(test)]
-pub(crate) mod test;
+pub mod test;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum RuntimeError {
@@ -28,9 +54,11 @@ pub enum RuntimeError {
     TypeMismatch { left: Type, op: BinOp, right: Type },
     #[error("Can't {op:?} on {r#type:?}")]
     TypeOpMismatch { op: BinOp, r#type: Type },
+    #[error(transparent)]
+    AstError(#[from] AstError),
+    #[error(transparent)]
+    ParseError(#[from] ParseError),
 }
-
-type Result<R> = core::result::Result<R, RuntimeError>;
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Type {
@@ -57,6 +85,9 @@ pub enum Value {
     /// The "bottom" type, no value.
     Void,
 }
+
+pub type EvalResult = Result<Value, RuntimeError>;
+type RuntimeResult<R> = Result<R, RuntimeError>;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum Intrinsic {
@@ -88,7 +119,7 @@ impl Value {
     }
 
     /// If this value is able to be represented as a signed integer, return it.
-    pub const fn as_int(&self) -> Result<i64> {
+    pub const fn as_int(&self) -> RuntimeResult<i64> {
         match self {
             Value::Int(n) => Ok(*n),
             Value::Boolean(b) => Ok(if *b { 1 } else { 0 }),
@@ -100,7 +131,7 @@ impl Value {
     }
 
     /// If this value is able to be represented as a boolean, return it.
-    pub const fn as_bool(&self) -> Result<bool> {
+    pub const fn as_bool(&self) -> RuntimeResult<bool> {
         match self {
             Value::Int(n) => Ok(*n != 0),
             Value::Boolean(b) => Ok(*b),
@@ -112,7 +143,7 @@ impl Value {
     }
 
     /// If this value has function type, apply the parameters to the function
-    pub fn call(&self, parameters: &[Value]) -> Result<Value> {
+    pub fn call(&self, parameters: &[Value]) -> EvalResult {
         if let Value::Intrinsic(function) = self {
             match function {
                 Intrinsic::Print => {
@@ -127,7 +158,7 @@ impl Value {
     }
 
     /// Attempt to apply `right` to this value using `op`.
-    pub fn bin_op(self, op: BinOp, right: Value) -> Result<Value> {
+    pub fn bin_op(self, op: BinOp, right: Value) -> EvalResult {
         if self.as_type() != right.as_type() {
             return Err(TypeMismatch {
                 left: self.as_type(),
@@ -189,7 +220,7 @@ impl Value {
     }
 }
 
-pub(crate) fn try_static_eval<'i>(exp: &'i Expression<'i>) -> Result<Value> {
+pub fn try_static_eval<'i>(exp: &'i Expression<'i>) -> EvalResult {
     match &exp.inner {
         InnerExpression::BinOp { left, op, right } => {
             Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
@@ -208,12 +239,12 @@ pub(crate) fn try_static_eval<'i>(exp: &'i Expression<'i>) -> Result<Value> {
 }
 
 #[derive(Debug)]
-pub(crate) struct ExecutionContext {
+pub struct ExecutionContext {
     globals: HashMap<Name, Value>,
 }
 
 impl ExecutionContext {
-    pub(crate) fn lookup(&self, name: &Name) -> Result<&Value> {
+    pub fn lookup(&self, name: &Name) -> RuntimeResult<&Value> {
         self.globals.get(name).ok_or(RuntimeError::NameError(*name))
     }
 }
@@ -229,9 +260,9 @@ lazy_static! {
 /// Parse and execute the given Go ~module~ expression
 ///
 /// ```
-/// # use gor::GoResult;
-/// # async fn try_main() -> GoResult {
-/// use gor::{Value, exec};
+/// # use gor_eval::EvalResult;
+/// # async fn try_main() -> EvalResult {
+/// use gor_eval::{Value, exec};
 /// let res = exec("2 * 24").await?;
 /// assert_eq!(Value::Int(48), res);
 /// # Ok(res) // returning from try_main
@@ -241,8 +272,10 @@ lazy_static! {
 /// #    try_main().await.unwrap();
 /// # }
 /// ```
-pub async fn exec(input: &str) -> GoResult {
+pub async fn exec(input: &str) -> EvalResult {
     let p = parse(Rule::expression, input)?;
     let e = Expression::try_from(p)?;
     e.evaluate(&*GLOBAL_CONTEXT).await
 }
+
+mod extensions;

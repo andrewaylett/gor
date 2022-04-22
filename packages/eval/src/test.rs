@@ -1,14 +1,15 @@
-use crate::ast::expression::Expression;
 use anyhow::{Context, Result};
+use gor_ast::expression::Expression;
 use pest::iterators::Pairs;
 use pretty_assertions::assert_eq;
 
-use crate::eval::{try_static_eval, Value, GLOBAL_CONTEXT};
-use crate::parse::parse;
-use crate::parse::Rule;
+use crate::extensions::Evaluable;
+use crate::{try_static_eval, Value, GLOBAL_CONTEXT};
+use gor_parse::parse;
+use gor_parse::Rule;
 
 #[track_caller]
-pub(crate) fn assert_static_expression(expected: Value, expression: &Expression) {
+pub fn assert_static_expression(expected: Value, expression: &Expression) {
     let r = try_static_eval(expression).unwrap();
     assert_eq!(
         expected, r,
@@ -18,7 +19,7 @@ pub(crate) fn assert_static_expression(expected: Value, expression: &Expression)
 }
 
 #[track_caller]
-pub(crate) async fn assert_expression(expected: Value, expression: &Expression<'_>) {
+pub async fn assert_expression(expected: Value, expression: &Expression<'_>) {
     let r = expression.evaluate(&*GLOBAL_CONTEXT).await;
     assert_eq!(
         Ok(expected),
@@ -30,7 +31,7 @@ pub(crate) async fn assert_expression(expected: Value, expression: &Expression<'
 }
 
 #[track_caller]
-pub(crate) fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
+pub fn parse_expression(input: &str) -> Result<Pairs<Rule>> {
     let p = parse(Rule::expression, input)?;
     let first = p.peek().context("Expected a parse")?;
     assert_eq!(first.as_span().start(), 0);

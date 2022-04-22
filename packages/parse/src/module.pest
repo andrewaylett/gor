@@ -4,17 +4,15 @@
 // Author: axa
 //
 
-module = { SOI ~ statements ~ EOI }
-
-statements = { (statement)* }
+module = { SOI ~ package ~ import* ~ statement* ~ EOI }
 
 statement = {
-    package | import | func | assignment | expression
+    func | assignment | expression
 }
 
 package = { "package" ~ name }
 import = { "import" ~ string }
-func = { "func" ~ call ~ "{" ~ statements ~ "}" }
+func = { "func" ~ call ~ "{" ~ statement* ~ "}" }
 
 assignment = { name ~ "=" ~ expression }
 

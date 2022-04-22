@@ -1,8 +1,9 @@
 use thiserror::Error;
 
-use crate::ast::AstError;
-use crate::eval::RuntimeError;
-use crate::eval::Value;
+use gor_ast::AstError;
+use gor_eval::RuntimeError;
+use gor_eval::Value;
+use gor_parse::ParseError;
 
 /// An error happened within Go
 #[derive(Error, Debug, PartialEq)]
@@ -15,7 +16,7 @@ pub enum GoError {
     AstError(#[from] AstError),
     /// Something happened within Pest
     #[error(transparent)]
-    PestError(#[from] pest::error::Error<crate::parse::Rule>),
+    ParseError(#[from] ParseError),
     /// Generic something went wrong
     #[error("Unknown Go Error")]
     Unknown,

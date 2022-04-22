@@ -1,8 +1,5 @@
-use crate::ast::AstError;
-use crate::error::GoResult;
-use crate::eval::RuntimeError;
-use crate::eval::Value;
-use crate::parse::Rule;
+use crate::AstError;
+use gor_parse::Rule;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum BinOp {
@@ -23,16 +20,6 @@ pub enum BinOp {
     Shr,
     BitAnd,
     BitClear,
-}
-
-impl BinOp {
-    pub(crate) fn static_apply(&self, l: Value, r: Value) -> Result<Value, RuntimeError> {
-        l.bin_op(*self, r)
-    }
-
-    pub(crate) fn evaluate(&self, left: Value, right: Value) -> GoResult {
-        self.static_apply(left, right).map_err(Into::into)
-    }
 }
 
 impl TryFrom<Rule> for BinOp {
