@@ -1,4 +1,4 @@
-# Go in Rust: gor
+# Gór: Go in Rust
 
 A _very incomplete_ implementation of Go written as an interpreter in Rust.
 
@@ -52,3 +52,26 @@ Eventually™ we'll have compile-failure, compile-only, and executable tests.
 ## Performance
 
 Not a priority
+
+## Naming
+
+According to [Wikipedia], Gór was the brother of Nór, who founded Norway.
+This project is called Gór, in his honour and because his name contains both "go" and "r".
+Its executable is `gor`.
+To avoid confusion, please try to avoid capitalising the executable name or missing off the accent in the project name.
+
+[Wikipedia]: https://en.wikipedia.org/wiki/N%C3%B3r
+
+### Pronunciation
+
+The "ó" is short, the "r" should be rolled if you're able.
+
+### Typing
+
+To generate the ó, on Linux type `<Compose>`-`'`-`a`.
+The compose key is usually `<Shift>`-`<Alt-Gr>`, although I recommend configuring your environment to use a plain `<Alt-Gr>`.
+On a Mac, type `<Option>`-`e` then `o`.
+
+If this all feels a bit too awkward for me to be serious about it, I recommend reading Patrick McKenzie's [falsehoods programmers believe about names] and then considering how easy you have it if your name is trivially representable in all the systems you use on a regular basis.
+
+[falsehoods programmers believe about names]: https://www.kalzumeus.com/2010/06/17/falsehoods-programmers-believe-about-names/
