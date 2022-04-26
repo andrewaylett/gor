@@ -257,7 +257,7 @@ lazy_static! {
     };
 }
 
-/// Parse and execute the given Go ~module~ expression
+/// Parse and execute the given Go ~~module~~ expression
 ///
 /// ```
 /// # use gor_eval::EvalResult;

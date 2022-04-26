@@ -55,17 +55,19 @@ macro_rules! l {
 }
 
 lazy_static! {
+    /// Go operator precedence
+    ///
     /// Per https://go.dev/ref/spec#Operator_precedence
     ///
-    /// +------------+---------------------------+
     /// | Precedence | Operator                  |
-    /// +------------+---------------------------+
-    //  |    5       |    *  /  %  <<  >>  &  &^ |
-    //  |    4       |    +  -  |  ^             |
-    //  |    3       |    ==  !=  <  <=  >  >=   |
-    //  |    2       |    &&                     |
-    //  |    1       |    ||                     |
-    /// +------------+---------------------------+
+    /// |------------|---------------------------|
+    /// |    5       |    *  /  %  <<  >>  &  &^ |
+    /// |    4       |    +  -  |  ^             |
+    /// |    3       |    ==  !=  <  <=  >  >=   |
+    /// |    2       |    &&                     |
+    /// |    1       |    ||                     |
+    ///
+    /// Gór adds `.` as the highest precedence binary operator for AST parsing
     pub static ref PRECEDENCE: PrecClimber<Rule> = PrecClimber::new(vec![
         l!(dot),
         l!(bool_or),

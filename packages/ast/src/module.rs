@@ -11,7 +11,7 @@ pub(crate) trait Member: Debug {}
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Module<'i> {
-    package: Name,
+    pub package: Name,
     imports: Vec<Name>,
     members: HashMap<Name, Box<dyn Member + 'i>>,
 }

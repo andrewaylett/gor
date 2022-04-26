@@ -19,6 +19,7 @@
     while_true,
     clippy::expect_used
 )]
+#![doc = include_str!("../README.md")]
 
 use std::path::PathBuf;
 

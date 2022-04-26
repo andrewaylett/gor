@@ -6,7 +6,7 @@ This package contains a high-level library interface and the command-line execut
 
 ## Usage
 
-```
+```text
 $ echo "2+3" > expr.go
 $ cargo build
     Finished dev [unoptimized + debuginfo] target(s) in 0.08s
@@ -57,7 +57,8 @@ Not a priority
 
 According to [Wikipedia], Gór was the brother of Nór, who founded Norway.
 This project is called Gór, in his honour and because his name contains both "go" and "r".
-Its executable is `gor`.
+Crates can only contain ASCII, and as a result use the name `gor`.
+The default executable takes the name of the crate and is therefore also `gor`.
 To avoid confusion, please try to avoid capitalising the executable name or missing off the accent in the project name.
 
 [Wikipedia]: https://en.wikipedia.org/wiki/N%C3%B3r

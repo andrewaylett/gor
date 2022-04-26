@@ -18,17 +18,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08f9b8508dccb7687a1d6c4ce66b2b0ecef467c94667de27d8d7fe1f8d2a9cdc"
 
 [[package]]
-name = "async-recursion"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2cda8f4bcc10624c4e85bc66b3f452cca98cfa5ca002dc83a16aad2367641bea"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "async-trait"
 version = "0.1.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,10 +245,10 @@ name = "gor"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "async-recursion",
  "futures",
  "gor-ast",
  "gor-eval",
+ "gor-loader",
  "gor-parse",
  "lazy_static",
  "pest",
@@ -278,7 +267,6 @@ dependencies = [
  "gor-parse",
  "lazy_static",
  "pest",
- "pest_derive",
  "pretty_assertions",
  "thiserror",
 ]
@@ -287,16 +275,24 @@ dependencies = [
 name = "gor-eval"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "async-recursion",
  "async-trait",
  "futures",
  "gor-ast",
  "gor-parse",
  "lazy_static",
- "pest",
- "pest_derive",
  "pretty_assertions",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "gor-loader"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "gor-ast",
+ "gor-parse",
+ "self_cell",
  "thiserror",
  "tokio",
 ]
@@ -582,6 +578,12 @@ name = "scopeguard"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d29ab0c6d3fc0ee92fe66e2d99f700eab17a8d57d1c1d3b748380fb20baa78cd"
+
+[[package]]
+name = "self_cell"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1ef965a420fe14fdac7dd018862966a4c14094f900e1650bbc71ddd7d580c8af"
 
 [[package]]
 name = "sha-1"
