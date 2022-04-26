@@ -275,11 +275,13 @@ dependencies = [
 name = "gor-eval"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "async-trait",
  "futures",
  "gor-ast",
  "gor-parse",
  "lazy_static",
+ "pest",
  "pretty_assertions",
  "thiserror",
  "tokio",
