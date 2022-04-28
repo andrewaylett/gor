@@ -20,6 +20,7 @@
     clippy::expect_used
 )]
 #![forbid(unsafe_code)]
+#![doc = include_str!("../README.md")]
 
 use std::fmt::Debug;
 use std::num::ParseIntError;
@@ -30,8 +31,12 @@ use thiserror::Error;
 
 use gor_parse::Rule;
 
+/// Errors that may be encountered when generating ASTs
 #[derive(Error, Debug, PartialEq)]
 pub enum AstError {
+    /// Our Pest grammar and our AST code don't agree
+    ///
+    /// Pest documentation suggests that we'd unwrap and panic, but in the interests of nice error messages we wrap and return instead.
     #[error("Invalid Rule attempting to match {0}: {1:?}")]
     InvalidRule(&'static str, Rule),
     #[error("Invalid State During Parse: {0}")]
@@ -40,7 +45,7 @@ pub enum AstError {
     InvalidStateString(String),
     #[error("Parse Rule Mismatch: expected {expected:?}, not {found:?}")]
     RuleMismatch { expected: Rule, found: Rule },
-    #[error(transparent)]
+    #[error("Failed to parse an integer")]
     IntError(#[from] ParseIntError),
 }
 
@@ -58,13 +63,23 @@ pub trait Located<'i> {
     fn as_span(&self) -> Span<'i>;
 }
 
+/// Operations with exactly two inputs
+///
+/// Currently all are infix operators.
 pub mod binary_op;
+/// AST for Expressions
 pub mod expression;
+/// AST for Functions
 pub mod func;
+/// AST for Modules
 pub mod module;
+/// An interned String usable as a name
 pub mod name;
+/// Short-circuiting binary operations
 pub mod short_circuit_op;
+/// AST for Statements
 pub mod statement;
+/// The unitary `-` operation
 pub mod unitary_op;
 
 fn expect_rule(pair: &Pair<Rule>, rule: Rule) -> AstResult<()> {

@@ -20,6 +20,7 @@
     clippy::expect_used
 )]
 #![forbid(unsafe_code)]
+#![doc = include_str!("../README.md")]
 
 use gor_ast::binary_op::BinOp;
 use lazy_static::lazy_static;
@@ -220,6 +221,10 @@ impl Value {
     }
 }
 
+/// Attempt to synchronously evaluate an expression
+///
+/// If an expression doesn't contain any external references then we can evaluate it without context
+/// or any async calls.
 pub fn try_static_eval<'i>(exp: &'i Expression<'i>) -> EvalResult {
     match &exp.inner {
         InnerExpression::BinOp { left, op, right } => {

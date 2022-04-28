@@ -20,6 +20,7 @@
     clippy::expect_used
 )]
 #![forbid(unsafe_code)]
+#![doc = include_str!("../README.md")]
 
 use lazy_static::lazy_static;
 use pest::iterators::Pairs;

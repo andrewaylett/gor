@@ -1,3 +1,27 @@
+#![deny(
+    bad_style,
+    const_err,
+    dead_code,
+    improper_ctypes,
+    missing_debug_implementations,
+    no_mangle_generic_items,
+    non_shorthand_field_patterns,
+    overflowing_literals,
+    path_statements,
+    patterns_in_fns_without_body,
+    private_in_public,
+    unconditional_recursion,
+    unreachable_pub,
+    unused,
+    unused_allocation,
+    unused_comparisons,
+    unused_parens,
+    while_true,
+    clippy::expect_used
+)]
+#![forbid(unsafe_code)]
+#![doc = include_str!("../README.md")]
+
 use async_trait::async_trait;
 use gor_ast::module::Module;
 use gor_ast::name::Name;
@@ -11,13 +35,13 @@ pub mod file_loader;
 
 #[derive(Error, Debug)]
 pub enum LoaderError {
-    #[error(transparent)]
+    #[error("Failed to read module")]
     IOError(#[from] io::Error),
-    #[error(transparent)]
+    #[error("Failed to parse module")]
     AstError(#[from] AstError),
-    #[error(transparent)]
+    #[error("Failed to tokenise module")]
     ParseError(#[from] ParseError),
-    #[error("Module not found: {}", .0)]
+    #[error("Module not found: {0}")]
     ModuleNotFound(Name),
 }
 
@@ -38,4 +62,6 @@ self_cell!(
     impl {Debug, PartialEq, Eq, Hash}
 );
 
+/// An owned reference to a module and its source
+#[derive(Debug)]
 pub struct ModuleDescriptor(InnerModuleDescriptor);

@@ -19,7 +19,7 @@ Int(5)
 If valid Go code fails to parse, that's a bug.
 Or possibly a missing feature, depending on how far I've got so far -- examples of all parseable control structures should be found in `tests/compile`.
 
-Our currently-unimplemented module loader should be able to load modules from anywhere the Go compiler can find them.
+Our currently-incomplete module loader should be able to load modules from anywhere the Go compiler can find them.
 
 Not all invalid Go programs will be rejected by `gor`.
 If an invalid Go program is accepted, the (minor) bug is that we accepted the code, rather than any run-time failures that might ensue.
