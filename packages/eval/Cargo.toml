@@ -14,7 +14,7 @@ gor-parse = { version="0.1.0", path="../parse" }
 
 tokio = { version = "^1.18.0", features = ["full", "tracing"] }
 
-thiserror = "1.0.30"
+thiserror = "1.0.31"
 
 async-trait = "0.1.53"
 lazy_static = "1.4.0"
