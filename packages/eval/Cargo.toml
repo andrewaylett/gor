@@ -12,7 +12,7 @@ repository = "https://github.com/andrewaylett/gor"
 gor-ast = { version="0.1.0", path="../ast" }
 gor-parse = { version="0.1.0", path="../parse" }
 
-tokio = { version = "^1.18.0", features = ["full", "tracing"] }
+tokio = { version = "^1.18.1", features = ["full", "tracing"] }
 
 thiserror = "1.0.31"
 

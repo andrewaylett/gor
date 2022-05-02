@@ -10,6 +10,6 @@ gor-ast = { version="0.1.0", path="../ast" }
 gor-parse = { version="0.1.0", path="../parse" }
 
 thiserror = "1.0.31"
-tokio = { version = "^1.18.0", features = ["full", "tracing"] }
+tokio = { version = "^1.18.1", features = ["full", "tracing"] }
 async-trait = "0.1.53"
 self_cell = "0.10.2"
