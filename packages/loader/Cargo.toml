@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 gor-ast = { version="0.1.0", path="../ast" }
 gor-parse = { version="0.1.0", path="../parse" }
+gor-core = { version="0.1.0", path="../core" }
 
 thiserror = "1.0.31"
 tokio = { version = "^1.18.2", features = ["full", "tracing"] }

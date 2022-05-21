@@ -35,13 +35,22 @@ use gor_parse::{parse, ParseError, Rule};
 use RuntimeError::{TypeMismatch, TypeOpMismatch};
 
 use crate::extensions::{Evaluable, ShortCircuitOpExt, UniOpExt};
+use async_trait::async_trait;
 use extensions::BinOpExt;
+use gor_ast::func::SourceFunction;
 use gor_ast::AstError;
 
 #[cfg(test)]
 pub mod test;
 
+#[derive(Debug, PartialEq)]
+#[non_exhaustive]
+pub enum LanguageFeature {
+    ExecutingFunctions,
+}
+
 #[derive(Error, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum RuntimeError {
     #[error("Not a function: {0:?}")]
     NotAFunction(Value),
@@ -59,9 +68,13 @@ pub enum RuntimeError {
     AstError(#[from] AstError),
     #[error(transparent)]
     ParseError(#[from] ParseError),
+    /// Something happened trying to load the module
+    #[error("Unsupported Language Feature: {0:?}")]
+    UnsupportedFeature(LanguageFeature),
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[non_exhaustive]
 pub enum Type {
     Int,
     Boolean,
@@ -74,6 +87,7 @@ pub enum Type {
 ///
 /// [expression]: ../ast/expression.html
 #[derive(Debug, PartialEq, Clone)]
+#[non_exhaustive]
 pub enum Value {
     /// A 64-bit signed int
     Int(i64),
@@ -91,6 +105,7 @@ pub type EvalResult = Result<Value, RuntimeError>;
 type RuntimeResult<R> = Result<R, RuntimeError>;
 
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[non_exhaustive]
 pub enum Intrinsic {
     Print,
 }
@@ -281,6 +296,23 @@ pub async fn exec(input: &str) -> EvalResult {
     let p = parse(Rule::expression, input)?;
     let e = Expression::try_from(p)?;
     e.evaluate(&*GLOBAL_CONTEXT).await
+}
+
+#[async_trait]
+pub trait FunctionExecutionExt {
+    async fn execute_in_default_context(&self) -> EvalResult;
+    async fn execute(&self, context: &ExecutionContext) -> EvalResult;
+}
+
+#[async_trait]
+impl<'i> FunctionExecutionExt for SourceFunction<'i> {
+    async fn execute_in_default_context(&self) -> EvalResult {
+        self.execute(&*GLOBAL_CONTEXT).await
+    }
+
+    async fn execute(&self, context: &ExecutionContext) -> EvalResult {
+        self.evaluate(context).await
+    }
 }
 
 mod extensions;

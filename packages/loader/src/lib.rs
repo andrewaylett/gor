@@ -23,7 +23,7 @@
 #![doc = include_str!("../README.md")]
 
 use async_trait::async_trait;
-use gor_ast::module::Module;
+use gor_ast::module::SourceModule;
 use gor_ast::name::Name;
 use gor_ast::AstError;
 use gor_parse::ParseError;
@@ -55,8 +55,8 @@ pub trait Loader {
 self_cell!(
     struct InnerModuleDescriptor {
         owner: String,
-        #[covariant]
-        dependent: Module,
+        #[not_covariant]
+        dependent: SourceModule,
     }
 
     impl {Debug, PartialEq, Eq, Hash}
@@ -65,3 +65,9 @@ self_cell!(
 /// An owned reference to a module and its source
 #[derive(Debug)]
 pub struct ModuleDescriptor(InnerModuleDescriptor);
+
+impl ModuleDescriptor {
+    pub fn module<'i, R>(&'i self, f: impl FnOnce(&'i SourceModule) -> R) -> R {
+        self.0.with_dependent::<'i>(|_, module| f(module))
+    }
+}

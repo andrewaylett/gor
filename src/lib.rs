@@ -23,33 +23,58 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
+use crate::error::{GoError, GoResult};
+use gor_eval::{FunctionExecutionExt, RuntimeError};
+use gor_loader::file_loader::FileLoader;
+use gor_loader::Loader;
+use std::path::PathBuf;
+
 /// Errors
 pub mod error;
 
-pub use gor_ast::Located;
-pub use gor_eval::exec;
-pub use gor_eval::Value;
+/// Executes a main module found in the referenced file
+///
+/// ```
+/// use gor::exec;
+/// let result = exec("tests/compile/hello.go");
+/// ```
+pub async fn exec<T: Into<PathBuf>>(main: T) -> GoResult {
+    let loader = FileLoader::new(main);
+    let module_descriptor = loader.load_module("main").await?;
+    let r = module_descriptor
+        .module(|module| {
+            let function = module.function("main");
+            match function {
+                Some(function) => Ok(function.execute_in_default_context()),
+                None => Err(GoError::RuntimeError(RuntimeError::NameError(
+                    "main".into(),
+                ))),
+            }
+        })?
+        .await?;
+    Ok(r)
+}
 
 /// Utilities for integration testing
 #[doc(hidden)]
 pub mod test {
-    use gor_loader::file_loader::FileLoader;
-    use gor_loader::Loader;
+    use crate::exec;
+    use crate::GoError::RuntimeError;
+    use gor_eval::LanguageFeature::ExecutingFunctions;
+    use gor_eval::RuntimeError::UnsupportedFeature;
     use std::path::PathBuf;
 
     /// Called by generated integration tests
     #[doc(hidden)]
     pub async fn test_go_file<T: Into<PathBuf>>(path: T) {
-        let path: PathBuf = path.into();
-        let loader = FileLoader::new(path);
-        let module = loader.load_module("main").await;
-        match module {
-            Ok(_) => {
-                //OK
-            }
-            Err(err) => {
-                panic!("Failed to read input: {:?}", err);
-            }
+        let result = exec(path.into()).await;
+        if let Err(RuntimeError(UnsupportedFeature(err))) = &result {
+            assert_eq!(err, &ExecutingFunctions);
+        } else {
+            panic!(
+                "Expected not to be able to evaluate the function, got {:?}",
+                result
+            );
         }
     }
 }

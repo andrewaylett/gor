@@ -22,11 +22,11 @@
 #![doc = include_str!("../README.md")]
 
 use std::path::PathBuf;
+use std::process::exit;
 
-use gor::{exec, Value};
+use gor::exec;
+use gor_eval::Value;
 use structopt::StructOpt;
-use tokio::fs::File;
-use tokio::io::AsyncReadExt;
 
 #[derive(StructOpt)]
 struct Opt {
@@ -37,15 +37,12 @@ struct Opt {
 async fn main() -> Result<(), anyhow::Error> {
     let opts = Opt::from_args();
 
-    let mut s = String::new();
-    let mut file = File::open(&*opts.input).await?;
-    file.read_to_string(&mut s).await?;
-
-    let result = exec(&s).await?;
+    let result = exec(&opts.input).await?;
     if let Value::Void = result {
         Ok(())
+    } else if let Value::Int(rv) = result {
+        exit(rv as i32);
     } else {
-        println!("{:?}", result);
         Ok(())
     }
 }

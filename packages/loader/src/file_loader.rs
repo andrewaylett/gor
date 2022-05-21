@@ -1,6 +1,6 @@
 use crate::{InnerModuleDescriptor, Loader, LoaderError, LoaderResult, ModuleDescriptor};
 use async_trait::async_trait;
-use gor_ast::module::Module;
+use gor_ast::module::SourceModule;
 use gor_parse::{parse, Rule};
 use std::path::PathBuf;
 use tokio::fs::File;
@@ -12,8 +12,8 @@ pub struct FileLoader {
 }
 
 impl FileLoader {
-    pub fn new(file: PathBuf) -> Self {
-        Self { file }
+    pub fn new<T: Into<PathBuf>>(file: T) -> Self {
+        Self { file: file.into() }
     }
 }
 
@@ -26,7 +26,7 @@ impl Loader for FileLoader {
         let descriptor = InnerModuleDescriptor::try_new(input, |input| {
             parse(Rule::module, input).map_or_else(
                 |e| Err(LoaderError::ParseError(e)),
-                |p| Module::try_from(p).map_err(Into::into),
+                |p| SourceModule::try_from(p).map_err(Into::into),
             )
         })?;
         if descriptor.with_dependent(|_, m| m.package) == module.into() {

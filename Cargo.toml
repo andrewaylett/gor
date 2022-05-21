@@ -18,6 +18,7 @@ gor-ast = { version="0.1.0", path="packages/ast" }
 gor-parse = { version="0.1.0", path="packages/parse" }
 gor-eval = { version="0.1.0", path="packages/eval" }
 gor-loader = { version="0.1.0", path="packages/loader" }
+gor-core = { version="0.1.0", path="packages/core" }
 
 tokio = { version = "^1.18.2", features = ["full", "tracing"] }
 pest = "2.1.3"

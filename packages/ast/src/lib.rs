@@ -33,6 +33,7 @@ use gor_parse::Rule;
 
 /// Errors that may be encountered when generating ASTs
 #[derive(Error, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum AstError {
     /// Our Pest grammar and our AST code don't agree
     ///

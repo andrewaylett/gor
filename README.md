@@ -7,11 +7,21 @@ This package contains a high-level library interface and the command-line execut
 ## Usage
 
 ```text
-$ echo "2+3" > expr.go
+$ cat hello.go
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("hello world")
+}
 $ cargo build
     Finished dev [unoptimized + debuginfo] target(s) in 0.08s
-$ target/debug/gor expr.go
-Int(5)
+$ target/debug/gor hello.go
+Error: Runtime Error
+
+Caused by:
+    Can't static eval "Can't actually evaluate functions yet"
 ```
 
 ## Goals

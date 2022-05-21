@@ -247,6 +247,7 @@ dependencies = [
  "anyhow",
  "futures",
  "gor-ast",
+ "gor-core",
  "gor-eval",
  "gor-loader",
  "gor-parse",
@@ -264,9 +265,19 @@ name = "gor-ast"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "gor-core",
  "gor-parse",
- "lazy_static",
  "pest",
+ "pretty_assertions",
+ "thiserror",
+]
+
+[[package]]
+name = "gor-core"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "lazy_static",
  "pretty_assertions",
  "thiserror",
 ]
@@ -279,6 +290,7 @@ dependencies = [
  "async-trait",
  "futures",
  "gor-ast",
+ "gor-core",
  "gor-parse",
  "lazy_static",
  "pest",
@@ -293,6 +305,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "gor-ast",
+ "gor-core",
  "gor-parse",
  "self_cell",
  "thiserror",

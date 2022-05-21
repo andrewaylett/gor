@@ -40,6 +40,7 @@ mod implementation {
 pub use implementation::Rule;
 
 #[derive(Error, Debug, PartialEq)]
+#[non_exhaustive]
 pub enum ParseError {
     #[error(transparent)]
     PestError(#[from] pest::error::Error<Rule>),

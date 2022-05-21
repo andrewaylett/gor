@@ -1,10 +1,15 @@
+use crate::LanguageFeature::ExecutingFunctions;
 use crate::{try_static_eval, EvalResult, ExecutionContext, RuntimeError, Value};
 use async_trait::async_trait;
 use futures::future::join_all;
 use gor_ast::binary_op::BinOp;
 use gor_ast::expression::{Expression, InnerExpression};
+use gor_ast::func::SourceFunction;
 use gor_ast::short_circuit_op::ShortCircuitOp;
 use gor_ast::unitary_op::UniOp;
+use gor_core::{Function, Visited};
+use std::future::Future;
+use std::pin::Pin;
 use tokio::join;
 
 pub(crate) trait BinOpExt {
@@ -124,5 +129,20 @@ impl UniOpExt for UniOp {
 
     fn evaluate(&self, value: Value) -> EvalResult {
         self.static_apply(value).map_err(Into::into)
+    }
+}
+
+#[async_trait]
+impl Evaluable for SourceFunction<'_> {
+    async fn evaluate(&self, _: &ExecutionContext) -> EvalResult {
+        Err(RuntimeError::UnsupportedFeature(ExecutingFunctions))
+    }
+}
+
+impl<'i, Func: Function<'i> + Evaluable>
+    Visited<'i, Func, Pin<Box<dyn Future<Output = EvalResult> + 'i>>> for ExecutionContext
+{
+    fn visit(&'i self, by: &'i Func) -> Pin<Box<dyn Future<Output = EvalResult> + 'i>> {
+        by.evaluate::<'i, 'i, '_>(self)
     }
 }

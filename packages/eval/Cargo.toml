@@ -11,6 +11,7 @@ repository = "https://github.com/andrewaylett/gor"
 [dependencies]
 gor-ast = { version="0.1.0", path="../ast" }
 gor-parse = { version="0.1.0", path="../parse" }
+gor-core = { version="0.1.0", path="../core" }
 
 tokio = { version = "^1.18.2", features = ["full", "tracing"] }
 
