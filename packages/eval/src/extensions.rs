@@ -104,7 +104,7 @@ impl<'i> Evaluable for Expression<'i> {
                     vector,
                     |mut r, p| {
                         r.push(p?);
-                        Ok(r) as core::result::Result<Vec<Value>, RuntimeError>
+                        Ok(r) as Result<Vec<Value>, RuntimeError>
                     },
                 )?;
                 context.lookup(name)?.call(&parameters)?
