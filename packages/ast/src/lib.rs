@@ -50,7 +50,7 @@ pub enum AstError {
     IntError(#[from] ParseIntError),
 }
 
-type AstResult<R> = core::result::Result<R, AstError>;
+type AstResult<R> = Result<R, AstError>;
 
 /// Indicates an element is derived from source.
 ///

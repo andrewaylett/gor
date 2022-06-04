@@ -17,4 +17,4 @@ pub enum GoError {
 }
 
 /// The regular return type for code dealing with Go values
-pub type GoResult = core::result::Result<Value, GoError>;
+pub type GoResult = Result<Value, GoError>;

@@ -37,7 +37,8 @@ impl Eq for InternedString {}
 
 impl Hash for InternedString {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.0.hash(state)
+        let ptr_self: *const String = self.0;
+        ptr_self.hash(state)
     }
 }
 

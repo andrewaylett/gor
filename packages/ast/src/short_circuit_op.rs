@@ -10,7 +10,7 @@ pub enum ShortCircuitOp {
 impl TryFrom<Rule> for ShortCircuitOp {
     type Error = AstError;
 
-    fn try_from(value: Rule) -> std::result::Result<Self, Self::Error> {
+    fn try_from(value: Rule) -> Result<Self, Self::Error> {
         Ok(match value {
             Rule::bool_and => ShortCircuitOp::LogicalAnd,
             Rule::bool_or => ShortCircuitOp::LogicalOr,

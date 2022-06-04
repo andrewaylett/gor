@@ -17,7 +17,7 @@ pub struct Expression<'i> {
 }
 
 impl Expression<'_> {
-    fn new<'i>(span: Span<'i>, inner: InnerExpression<'i>) -> Expression<'i> {
+    const fn new<'i>(span: Span<'i>, inner: InnerExpression<'i>) -> Expression<'i> {
         Expression { span, inner }
     }
 }
@@ -51,7 +51,7 @@ pub enum InnerExpression<'i> {
 impl<'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
     type Error = AstError;
 
-    fn try_from(mut pairs: Pairs<'i, Rule>) -> super::AstResult<Self> {
+    fn try_from(mut pairs: Pairs<'i, Rule>) -> AstResult<Self> {
         let expression = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get an expression, but found nothing to parse",
         ))?;

@@ -17,7 +17,7 @@ pub struct SourceModule<'i> {
 impl<'i> TryFrom<Pairs<'i, Rule>> for SourceModule<'i> {
     type Error = AstError;
 
-    fn try_from(mut pairs: Pairs<'i, Rule>) -> super::AstResult<Self> {
+    fn try_from(mut pairs: Pairs<'i, Rule>) -> AstResult<Self> {
         let pair = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get a module, but found nothing to parse",
         ))?;
