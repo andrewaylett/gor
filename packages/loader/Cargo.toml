@@ -12,5 +12,5 @@ gor-core = { version="0.1.0", path="../core" }
 
 thiserror = "1.0.31"
 tokio = { version = "^1.18.2", features = ["full", "tracing"] }
-async-trait = "0.1.53"
+async-trait = "0.1.56"
 self_cell = "0.10.2"
