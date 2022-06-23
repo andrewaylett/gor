@@ -71,7 +71,7 @@ pub trait Loader {
 self_cell!(
     struct InnerModuleDescriptor {
         owner: String,
-        #[not_covariant]
+        #[covariant]
         dependent: SourceModule,
     }
 
@@ -83,7 +83,7 @@ self_cell!(
 pub struct ModuleDescriptor(InnerModuleDescriptor);
 
 impl ModuleDescriptor {
-    pub fn module<'i, R>(&'i self, f: impl FnOnce(&'i SourceModule) -> R) -> R {
-        self.0.with_dependent::<'i>(|_, module| f(module))
+    pub fn module(&self) -> &SourceModule {
+        self.0.borrow_dependent()
     }
 }

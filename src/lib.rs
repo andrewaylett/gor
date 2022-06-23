@@ -41,18 +41,12 @@ pub mod error;
 pub async fn exec<T: Into<PathBuf>>(main: T) -> GoResult {
     let loader = FileLoader::new(main);
     let module_descriptor = loader.load_module("main").await?;
-    let r = module_descriptor
-        .module(|module| {
-            let function = module.function("main");
-            match function {
-                Some(function) => Ok(function.execute_in_default_context()),
-                None => Err(GoError::RuntimeError(RuntimeError::NameError(
-                    "main".into(),
-                ))),
-            }
-        })?
-        .await?;
-    Ok(r)
+    let module = module_descriptor.module();
+    let function = module.function("main");
+    let function = function.ok_or(GoError::RuntimeError(RuntimeError::NameError(
+        "main".into(),
+    )))?;
+    Ok(function.execute_in_default_context().await?)
 }
 
 /// Utilities for integration testing

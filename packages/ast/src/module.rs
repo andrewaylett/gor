@@ -14,14 +14,14 @@ pub struct SourceModule<'i> {
     functions: HashMap<Name, Box<SourceFunction<'i>>>,
 }
 
-impl<'i> TryFrom<Pairs<'i, Rule>> for SourceModule<'i> {
+impl<'s: 'i, 'i> TryFrom<Pairs<'s, Rule>> for SourceModule<'i> {
     type Error = AstError;
 
-    fn try_from(mut pairs: Pairs<'i, Rule>) -> AstResult<Self> {
+    fn try_from(mut pairs: Pairs<'s, Rule>) -> AstResult<Self> {
         let pair = pairs.next().ok_or(AstError::InvalidState(
             "Expected to get a module, but found nothing to parse",
         ))?;
-        let item = SourceModule::try_from(pair);
+        let item: Result<SourceModule<'i>, AstError> = SourceModule::try_from(pair);
         if pairs.next().is_some() {
             Err(AstError::InvalidState(
                 "Expected to consume all of the parse",
@@ -32,10 +32,10 @@ impl<'i> TryFrom<Pairs<'i, Rule>> for SourceModule<'i> {
     }
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for SourceModule<'i> {
+impl<'s: 'i, 'i> TryFrom<Pair<'s, Rule>> for SourceModule<'i> {
     type Error = AstError;
 
-    fn try_from(module: Pair<'i, Rule>) -> AstResult<Self> {
+    fn try_from(module: Pair<'s, Rule>) -> AstResult<Self> {
         expect_rule(&module, Rule::module)?;
         primary(module)
     }
@@ -48,10 +48,10 @@ impl<'i> SourceModule<'i> {
     }
 }
 
-fn primary<'i>(module: Pair<'i, Rule>) -> AstResult<SourceModule<'i>> {
+fn primary<'s: 'i, 'i>(module: Pair<'s, Rule>) -> AstResult<SourceModule<'i>> {
     expect_rule(&module, Rule::module)?;
 
-    let inner: Pairs<'i, Rule> = module.into_inner();
+    let inner: Pairs<'s, Rule> = module.into_inner();
     let mut package = None;
     let mut imports = vec![];
     let mut functions: HashMap<Name, Box<SourceFunction<'i>>> = HashMap::new();
