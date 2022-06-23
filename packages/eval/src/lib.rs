@@ -39,6 +39,7 @@ use async_trait::async_trait;
 use extensions::BinOpExt;
 use gor_ast::func::SourceFunction;
 use gor_ast::AstError;
+use gor_core::parse_error::{parse_enum, InternalError};
 
 #[cfg(test)]
 pub mod test;
@@ -47,6 +48,20 @@ pub mod test;
 #[non_exhaustive]
 pub enum LanguageFeature {
     ExecutingFunctions,
+}
+
+impl TryFrom<&str> for LanguageFeature {
+    type Error = InternalError;
+
+    fn try_from(value: &str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
+        match value {
+            "ExecutingFunctions" => Ok(LanguageFeature::ExecutingFunctions),
+            _ => Err(InternalError::Error(format!(
+                "Unknown language feature: {}",
+                value
+            ))),
+        }
+    }
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -71,6 +86,23 @@ pub enum RuntimeError {
     /// Something happened trying to load the module
     #[error("Unsupported Language Feature: {0:?}")]
     UnsupportedFeature(LanguageFeature),
+}
+
+impl TryFrom<&str> for RuntimeError {
+    type Error = InternalError;
+
+    fn try_from(value: &str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
+        let (name, param) = parse_enum(value)?;
+        match name {
+            "UnsupportedFeature" => Ok(RuntimeError::UnsupportedFeature(
+                LanguageFeature::try_from(param)?,
+            )),
+            _ => Err(InternalError::Error(format!(
+                "Unknown (or unimplemented) error type: {}",
+                name
+            ))),
+        }
+    }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]

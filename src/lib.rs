@@ -58,23 +58,33 @@ pub async fn exec<T: Into<PathBuf>>(main: T) -> GoResult {
 /// Utilities for integration testing
 #[doc(hidden)]
 pub mod test {
-    use crate::exec;
-    use crate::GoError::RuntimeError;
-    use gor_eval::LanguageFeature::ExecutingFunctions;
-    use gor_eval::RuntimeError::UnsupportedFeature;
+    use crate::{exec, GoError};
     use std::path::PathBuf;
 
     /// Called by generated integration tests
     #[doc(hidden)]
-    pub async fn test_go_file<T: Into<PathBuf>>(path: T) {
+    pub async fn test_go_file<T: Into<PathBuf>>(path: T, error_str: Option<&str>) {
+        let expected_error = error_str.map(|e| GoError::try_from(e).unwrap());
         let result = exec(path.into()).await;
-        if let Err(RuntimeError(UnsupportedFeature(err))) = &result {
-            assert_eq!(err, &ExecutingFunctions);
-        } else {
-            panic!(
-                "Expected not to be able to evaluate the function, got {:?}",
-                result
-            );
+        match (result, expected_error) {
+            (Ok(_), None) => {
+                // This is fine
+            }
+            (Err(e), None) => {
+                // Classic failure
+                panic!("Expected the test to evaluate successfully: {:?}", e);
+            }
+            (Ok(r), Some(e)) => {
+                // It works‽
+                panic!(
+                    "Expected the test to evaluate to an error ({:?}), got {:?}",
+                    e, r
+                );
+            }
+            (Err(actual), Some(expected)) => {
+                // Expected failure
+                assert_eq!(expected, actual);
+            }
         }
     }
 }

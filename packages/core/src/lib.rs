@@ -27,6 +27,7 @@ use std::error::Error;
 use std::fmt::Debug;
 
 pub mod interned_string;
+pub mod parse_error;
 
 pub type CoreError = Box<dyn Error + 'static>;
 pub type CoreResult<T> = Result<T, CoreError>;

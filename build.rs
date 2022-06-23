@@ -1,5 +1,7 @@
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::fs::File;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 use std::{env, fs, io};
@@ -64,12 +66,29 @@ fn main() {
     writeln!(base, "mod generated_compile;").expect("Write failed");
 }
 
+lazy_static! {
+    static ref RE: Regex = Regex::new("^// err=(.*)$").unwrap();
+}
+
 fn generate_test_for_file(
     name: &str,
     modules: &mut Vec<String>,
     out: &Path,
     include_file: &Path,
 ) -> io::Result<()> {
+    let f = File::open(include_file)?;
+    let buf = BufReader::new(f);
+    let error_str = buf.lines().find_map(|line| {
+        let line = line.expect("Failed to read source file");
+        let caps = RE.captures(&line);
+        caps.and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()))
+    });
+
+    let error_str = match error_str {
+        Some(e) => format!("Some(\"{}\")", e),
+        None => "None".to_string(),
+    };
+
     let basename = name
         .strip_suffix(".go")
         .expect("We checked the suffix earlier");
@@ -80,7 +99,11 @@ fn generate_test_for_file(
     writeln!(file)?;
     writeln!(file, "#[tokio::test]")?;
     writeln!(file, "async fn go_file() {{")?;
-    writeln!(file, "    test_go_file({:?}).await;", include_file)?;
+    writeln!(
+        file,
+        "    test_go_file({:?}, {}).await;",
+        include_file, error_str
+    )?;
     writeln!(file, "}}")?;
 
     Ok(())
