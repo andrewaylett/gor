@@ -1,11 +1,11 @@
 use lazy_static::lazy_static;
 use std::collections::BTreeSet;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::hash::{Hash, Hasher};
 use std::ops::Deref;
 use std::sync::Mutex;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone)]
 pub struct InternedString(&'static String);
 
 lazy_static! {
@@ -15,6 +15,12 @@ lazy_static! {
 impl Display for InternedString {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+impl Debug for InternedString {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Debug::fmt(&self.0, f)
     }
 }
 

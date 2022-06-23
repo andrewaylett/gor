@@ -1,0 +1,17 @@
+[package]
+name = "gor-linker"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+gor-ast = { version="0.1.0", path="../ast" }
+gor-parse = { version="0.1.0", path="../parse" }
+gor-core = { version="0.1.0", path="../core" }
+gor-loader = { version="0.1.0", path="../loader" }
+
+thiserror = "1.0.31"
+tokio = { version = "^1.19.2", features = ["full", "tracing"] }
+async-trait = "0.1.56"
+self_cell = "0.10.2"

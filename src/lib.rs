@@ -24,9 +24,9 @@
 #![doc = include_str!("../README.md")]
 
 use crate::error::{GoError, GoResult};
-use gor_eval::{FunctionExecutionExt, RuntimeError};
+use gor_eval::execute_in_default_context;
+use gor_linker::Linker;
 use gor_loader::file_loader::FileLoader;
-use gor_loader::Loader;
 use std::path::PathBuf;
 
 /// Errors
@@ -40,13 +40,8 @@ pub mod error;
 /// ```
 pub async fn exec<T: Into<PathBuf>>(main: T) -> GoResult {
     let loader = FileLoader::new(main);
-    let module_descriptor = loader.load_module("main").await?;
-    let module = module_descriptor.module();
-    let function = module.function("main");
-    let function = function.ok_or(GoError::RuntimeError(RuntimeError::NameError(
-        "main".into(),
-    )))?;
-    Ok(function.execute_in_default_context().await?)
+    let linker = Linker::bootstrap(loader).await?;
+    Ok(execute_in_default_context(linker, "main", "main").await?)
 }
 
 /// Utilities for integration testing
@@ -58,7 +53,9 @@ pub mod test {
     /// Called by generated integration tests
     #[doc(hidden)]
     pub async fn test_go_file<T: Into<PathBuf>>(path: T, error_str: Option<&str>) {
-        let expected_error = error_str.map(|e| GoError::try_from(e).unwrap());
+        #[allow(clippy::expect_used)] // We want to panic if we can't parse the error
+        let expected_error =
+            error_str.map(|e| GoError::try_from(e).expect("Can't parse expected error"));
         let result = exec(path.into()).await;
         match (result, expected_error) {
             (Ok(_), None) => {

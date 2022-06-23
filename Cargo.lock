@@ -258,6 +258,7 @@ dependencies = [
  "gor-ast",
  "gor-core",
  "gor-eval",
+ "gor-linker",
  "gor-loader",
  "gor-parse",
  "lazy_static",
@@ -302,10 +303,26 @@ dependencies = [
  "futures",
  "gor-ast",
  "gor-core",
+ "gor-linker",
+ "gor-loader",
  "gor-parse",
  "lazy_static",
  "pest",
  "pretty_assertions",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "gor-linker"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "gor-ast",
+ "gor-core",
+ "gor-loader",
+ "gor-parse",
+ "self_cell",
  "thiserror",
  "tokio",
 ]

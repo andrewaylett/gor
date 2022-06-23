@@ -85,7 +85,7 @@ fn generate_test_for_file(
     });
 
     let error_str = match error_str {
-        Some(e) => format!("Some(\"{}\")", e),
+        Some(e) => format!("Some(r##\"{}\"##)", e),
         None => "None".to_string(),
     };
 

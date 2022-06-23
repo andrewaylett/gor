@@ -3,6 +3,7 @@ use thiserror::Error;
 
 use gor_eval::RuntimeError;
 use gor_eval::Value;
+use gor_linker::LinkerError;
 use gor_loader::LoaderError;
 
 /// An error happened within Go
@@ -15,6 +16,9 @@ pub enum GoError {
     /// Something happened trying to load the module
     #[error("Error Loading Module")]
     LoaderError(#[from] LoaderError),
+    /// Something happened trying to link the module
+    #[error("Error Linking Module")]
+    LinkerError(#[from] LinkerError),
     /// Just giving up
     #[error("Error: {0}")]
     Error(String),
@@ -30,9 +34,10 @@ impl TryFrom<&str> for GoError {
         let (name, param) = parse_enum(value)?;
         match name {
             "RuntimeError" => Ok(GoError::RuntimeError(RuntimeError::try_from(param)?)),
+            "LinkerError" => Ok(GoError::LinkerError(LinkerError::try_from(param)?)),
             "Error" => Ok(GoError::Error(param.to_string())),
             _ => Err(InternalError::Error(format!(
-                "Unknown (or unimplemented) error type: {}",
+                "Unknown (or unimplemented) GoError variant: {}",
                 name
             ))),
         }

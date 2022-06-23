@@ -10,7 +10,7 @@ use std::fmt::Debug;
 #[derive(Debug)]
 pub struct SourceModule<'i> {
     pub package: Name,
-    imports: Vec<Name>,
+    pub imports: Vec<Name>,
     functions: HashMap<Name, Box<SourceFunction<'i>>>,
 }
 
@@ -42,8 +42,7 @@ impl<'s: 'i, 'i> TryFrom<Pair<'s, Rule>> for SourceModule<'i> {
 }
 
 impl<'i> SourceModule<'i> {
-    pub fn function(&self, name: &str) -> Option<&SourceFunction<'i>> {
-        let name = name.into();
+    pub fn function(&self, name: Name) -> Option<&SourceFunction<'i>> {
         self.functions.get(&name).map(|b| b.as_ref())
     }
 }

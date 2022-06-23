@@ -35,11 +35,11 @@ use gor_parse::{parse, ParseError, Rule};
 use RuntimeError::{TypeMismatch, TypeOpMismatch};
 
 use crate::extensions::{Evaluable, ShortCircuitOpExt, UniOpExt};
-use async_trait::async_trait;
 use extensions::BinOpExt;
-use gor_ast::func::SourceFunction;
 use gor_ast::AstError;
 use gor_core::parse_error::{parse_enum, InternalError};
+use gor_linker::{Linker, LinkerError};
+use gor_loader::ModuleDescriptor;
 
 #[cfg(test)]
 pub mod test;
@@ -83,6 +83,8 @@ pub enum RuntimeError {
     AstError(#[from] AstError),
     #[error(transparent)]
     ParseError(#[from] ParseError),
+    #[error(transparent)]
+    LinkerError(#[from] LinkerError),
     /// Something happened trying to load the module
     #[error("Unsupported Language Feature: {0:?}")]
     UnsupportedFeature(LanguageFeature),
@@ -98,7 +100,7 @@ impl TryFrom<&str> for RuntimeError {
                 LanguageFeature::try_from(param)?,
             )),
             _ => Err(InternalError::Error(format!(
-                "Unknown (or unimplemented) error type: {}",
+                "Unknown (or unimplemented) RuntimeError variant: {}",
                 name
             ))),
         }
@@ -290,22 +292,38 @@ pub fn try_static_eval<'i>(exp: &'i Expression<'i>) -> EvalResult {
     }
 }
 
+pub trait ExecutionContext: Sync + Debug {
+    fn value(&self, name: Name) -> RuntimeResult<&Value> {
+        Err(RuntimeError::NameError(name))
+    }
+
+    fn module(&self, name: Name) -> RuntimeResult<&ModuleDescriptor> {
+        Err(RuntimeError::NameError(name))
+    }
+}
+
 #[derive(Debug)]
-pub struct ExecutionContext {
+pub struct GlobalExecutionContext {
     globals: HashMap<Name, Value>,
 }
 
-impl ExecutionContext {
-    pub fn lookup(&self, name: &Name) -> RuntimeResult<&Value> {
-        self.globals.get(name).ok_or(RuntimeError::NameError(*name))
+impl ExecutionContext for GlobalExecutionContext {
+    fn value(&self, name: Name) -> RuntimeResult<&Value> {
+        self.globals.get(&name).ok_or(RuntimeError::NameError(name))
+    }
+}
+
+impl ExecutionContext for Linker {
+    fn module(&self, name: Name) -> RuntimeResult<&ModuleDescriptor> {
+        Ok(self.lookup(name)?)
     }
 }
 
 lazy_static! {
-    pub(crate) static ref GLOBAL_CONTEXT: ExecutionContext = {
+    pub(crate) static ref GLOBAL_CONTEXT: GlobalExecutionContext = {
         let mut m = HashMap::new();
         m.insert("print".into(), Value::Intrinsic(Intrinsic::Print));
-        ExecutionContext { globals: m }
+        GlobalExecutionContext { globals: m }
     };
 }
 
@@ -330,21 +348,61 @@ pub async fn exec(input: &str) -> EvalResult {
     e.evaluate(&*GLOBAL_CONTEXT).await
 }
 
-#[async_trait]
-pub trait FunctionExecutionExt {
-    async fn execute_in_default_context(&self) -> EvalResult;
-    async fn execute(&self, context: &ExecutionContext) -> EvalResult;
+#[derive(Debug, Default)]
+struct ContextLadder {
+    contexts: Vec<Box<dyn ExecutionContext>>,
 }
 
-#[async_trait]
-impl<'i> FunctionExecutionExt for SourceFunction<'i> {
-    async fn execute_in_default_context(&self) -> EvalResult {
-        self.execute(&*GLOBAL_CONTEXT).await
+impl ContextLadder {
+    fn add(&mut self, context: Box<dyn ExecutionContext>) {
+        self.contexts.insert(0, context)
     }
 
-    async fn execute(&self, context: &ExecutionContext) -> EvalResult {
-        self.evaluate(context).await
+    fn lookup<'i, T, F>(&'i self, name: Name, mut f: F) -> RuntimeResult<&'i T>
+    where
+        F: FnMut(&'i dyn ExecutionContext, Name) -> RuntimeResult<&'i T>,
+    {
+        for context in &self.contexts {
+            if let Ok(item) = f(context.as_ref(), name) {
+                return Ok(item);
+            }
+        }
+        Err(RuntimeError::NameError(name))
     }
+}
+
+impl ExecutionContext for ContextLadder {
+    fn value(&self, name: Name) -> RuntimeResult<&Value> {
+        self.lookup(name, ExecutionContext::value)
+    }
+
+    fn module(&self, name: Name) -> RuntimeResult<&ModuleDescriptor> {
+        self.lookup(name, ExecutionContext::module)
+    }
+}
+
+pub async fn execute_in_default_context<T: Into<Name>>(
+    linker: Linker,
+    module: T,
+    fun: T,
+) -> EvalResult {
+    execute_in_context(linker, ContextLadder::default(), module.into(), fun.into()).await
+}
+
+async fn execute_in_context(
+    linker: Linker,
+    mut context: ContextLadder,
+    module: Name,
+    fun: Name,
+) -> EvalResult {
+    context.add(Box::new(linker));
+    context
+        .module(module)?
+        .module()
+        .function(fun)
+        .ok_or(RuntimeError::NameError(fun))?
+        .evaluate(&context)
+        .await
 }
 
 mod extensions;

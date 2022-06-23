@@ -32,16 +32,6 @@ pub mod parse_error;
 pub type CoreError = Box<dyn Error + 'static>;
 pub type CoreResult<T> = Result<T, CoreError>;
 
-pub trait Visited<'i, T: ?Sized, R> {
-    fn visit(&'i self, by: &'i T) -> R;
-}
-
-pub trait Visitor<'i, T: Visited<'i, Self, R> + ?Sized, R> {
-    fn visit(&'i self, to: &'i T) -> R {
-        to.visit(self)
-    }
-}
-
 pub trait Member: Debug + Sync {}
 
 pub trait Function<'i>: Member {}

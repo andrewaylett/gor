@@ -7,9 +7,6 @@ use gor_ast::expression::{Expression, InnerExpression};
 use gor_ast::func::SourceFunction;
 use gor_ast::short_circuit_op::ShortCircuitOp;
 use gor_ast::unitary_op::UniOp;
-use gor_core::{Function, Visited};
-use std::future::Future;
-use std::pin::Pin;
 use tokio::join;
 
 pub(crate) trait BinOpExt {
@@ -33,7 +30,7 @@ pub(crate) trait ShortCircuitOpExt {
         &self,
         left: &Expression<'i>,
         right: &Expression<'i>,
-        context: &ExecutionContext,
+        context: &dyn ExecutionContext,
     ) -> EvalResult;
     fn static_apply(&self, left: Value, right: impl FnOnce() -> EvalResult) -> EvalResult;
 }
@@ -44,7 +41,7 @@ impl ShortCircuitOpExt for ShortCircuitOp {
         &self,
         left: &Expression<'i>,
         right: &Expression<'i>,
-        context: &ExecutionContext,
+        context: &dyn ExecutionContext,
     ) -> EvalResult {
         let left = left.evaluate(context).await?;
         let left = left.as_bool()?;
@@ -69,12 +66,12 @@ impl ShortCircuitOpExt for ShortCircuitOp {
 
 #[async_trait]
 pub(crate) trait Evaluable {
-    async fn evaluate(&self, context: &ExecutionContext) -> EvalResult;
+    async fn evaluate(&self, context: &dyn ExecutionContext) -> EvalResult;
 }
 
 #[async_trait]
 impl<'i> Evaluable for Expression<'i> {
-    async fn evaluate(&self, context: &ExecutionContext) -> EvalResult {
+    async fn evaluate(&self, context: &dyn ExecutionContext) -> EvalResult {
         if let Ok(r) = try_static_eval(self) {
             return Ok(r);
         }
@@ -91,7 +88,7 @@ impl<'i> Evaluable for Expression<'i> {
             }
             InnerExpression::String(s) => Value::String(s.to_owned()),
             InnerExpression::Number(n) => Value::Int(*n),
-            InnerExpression::Name(n) => context.lookup(n)?.clone(),
+            InnerExpression::Name(n) => context.value(*n)?.clone(),
             InnerExpression::UniOp { op, exp } => op.evaluate(exp.evaluate(context).await?)?,
             InnerExpression::Call { name, parameters } => {
                 let parameter_futures: Vec<_> = parameters
@@ -107,7 +104,7 @@ impl<'i> Evaluable for Expression<'i> {
                         Ok(r) as Result<Vec<Value>, RuntimeError>
                     },
                 )?;
-                context.lookup(name)?.call(&parameters)?
+                context.value(*name)?.call(&parameters)?
             }
         })
     }
@@ -134,15 +131,7 @@ impl UniOpExt for UniOp {
 
 #[async_trait]
 impl Evaluable for SourceFunction<'_> {
-    async fn evaluate(&self, _: &ExecutionContext) -> EvalResult {
+    async fn evaluate(&self, _: &dyn ExecutionContext) -> EvalResult {
         Err(RuntimeError::UnsupportedFeature(ExecutingFunctions))
-    }
-}
-
-impl<'i, Func: Function<'i> + Evaluable>
-    Visited<'i, Func, Pin<Box<dyn Future<Output = EvalResult> + 'i>>> for ExecutionContext
-{
-    fn visit(&'i self, by: &'i Func) -> Pin<Box<dyn Future<Output = EvalResult> + 'i>> {
-        by.evaluate::<'i, 'i, '_>(self)
     }
 }

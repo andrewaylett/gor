@@ -1,6 +1,6 @@
 use crate::name::Name;
 use crate::{expect_rule, AstError, AstResult, Located};
-use gor_core::{Function, Member, Visited, Visitor};
+use gor_core::{Function, Member};
 use gor_parse::Rule;
 use pest::iterators::Pair;
 use pest::Span;
@@ -46,8 +46,6 @@ impl<'i> TryFrom<Pair<'i, Rule>> for SourceFunction<'i> {
 
 impl<'i> Member for SourceFunction<'i> {}
 impl<'i> Function<'i> for SourceFunction<'i> {}
-
-impl<'i, T: Visited<'i, SourceFunction<'i>, R>, R> Visitor<'i, T, R> for SourceFunction<'i> {}
 
 #[derive(Debug)]
 pub struct Parameter<'i> {
