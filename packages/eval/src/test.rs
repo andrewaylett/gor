@@ -22,8 +22,8 @@ pub fn assert_static_expression(expected: Value, expression: &Expression) {
 pub async fn assert_expression(expected: Value, expression: &Expression<'_>) {
     let r = expression.evaluate(&*GLOBAL_CONTEXT).await;
     assert_eq!(
-        Ok(expected),
-        r,
+        expected,
+        r.unwrap(),
         "Expression was {:?} => {:?}",
         expression.span,
         expression.inner

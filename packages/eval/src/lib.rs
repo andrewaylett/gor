@@ -37,7 +37,7 @@ use RuntimeError::{TypeMismatch, TypeOpMismatch};
 use crate::extensions::{Evaluable, ShortCircuitOpExt, UniOpExt};
 use extensions::BinOpExt;
 use gor_ast::AstError;
-use gor_core::parse_error::{parse_enum, InternalError};
+use gor_core::parse_error::InternalError;
 use gor_linker::{Linker, LinkerError};
 use gor_loader::ModuleDescriptor;
 
@@ -64,7 +64,7 @@ impl TryFrom<&str> for LanguageFeature {
     }
 }
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum RuntimeError {
     #[error("Not a function: {0:?}")]
@@ -88,23 +88,6 @@ pub enum RuntimeError {
     /// Something happened trying to load the module
     #[error("Unsupported Language Feature: {0:?}")]
     UnsupportedFeature(LanguageFeature),
-}
-
-impl TryFrom<&str> for RuntimeError {
-    type Error = InternalError;
-
-    fn try_from(value: &str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
-        let (name, param) = parse_enum(value)?;
-        match name {
-            "UnsupportedFeature" => Ok(RuntimeError::UnsupportedFeature(
-                LanguageFeature::try_from(param)?,
-            )),
-            _ => Err(InternalError::Error(format!(
-                "Unknown (or unimplemented) RuntimeError variant: {}",
-                name
-            ))),
-        }
-    }
 }
 
 #[derive(Debug, Eq, PartialEq, Copy, Clone)]

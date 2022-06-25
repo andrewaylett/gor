@@ -23,7 +23,7 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../README.md")]
 
-use crate::error::{GoError, GoResult};
+use crate::error::GoResult;
 use gor_eval::execute_in_default_context;
 use gor_linker::Linker;
 use gor_loader::file_loader::FileLoader;
@@ -47,17 +47,14 @@ pub async fn exec<T: Into<PathBuf>>(main: T) -> GoResult {
 /// Utilities for integration testing
 #[doc(hidden)]
 pub mod test {
-    use crate::{exec, GoError};
+    use crate::exec;
     use std::path::PathBuf;
 
     /// Called by generated integration tests
     #[doc(hidden)]
     pub async fn test_go_file<T: Into<PathBuf>>(path: T, error_str: Option<&str>) {
-        #[allow(clippy::expect_used)] // We want to panic if we can't parse the error
-        let expected_error =
-            error_str.map(|e| GoError::try_from(e).expect("Can't parse expected error"));
         let result = exec(path.into()).await;
-        match (result, expected_error) {
+        match (result, error_str) {
             (Ok(_), None) => {
                 // This is fine
             }
@@ -74,7 +71,7 @@ pub mod test {
             }
             (Err(actual), Some(expected)) => {
                 // Expected failure
-                assert_eq!(expected, actual);
+                assert_eq!(expected, format!("{:?}", actual));
             }
         }
     }

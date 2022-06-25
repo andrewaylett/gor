@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use tokio::fs::File;
 use tokio::io::AsyncReadExt;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileLoader {
     file: PathBuf,
 }

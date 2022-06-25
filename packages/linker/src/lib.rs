@@ -23,56 +23,69 @@
 #![doc = include_str!("../README.md")]
 
 use gor_ast::name::Name;
-use gor_core::parse_error::{parse_enum, InternalError};
 use gor_loader::file_loader::FileLoader;
-use gor_loader::{Loader, LoaderError, ModuleDescriptor};
-use std::collections::HashMap;
+use gor_loader::{Loader, LoaderError, LoaderResult, ModuleDescriptor};
+use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use thiserror::Error;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::task::JoinError;
 
-#[derive(Error, Debug, PartialEq)]
+#[derive(Error, Debug)]
 pub enum LinkerError {
     #[error("Failed to read module")]
     Loader(#[from] LoaderError),
+    #[error("Join issue")]
+    Tokio(#[from] JoinError),
     #[error("Module not found: {0}")]
     NotFound(Name),
 }
 
 pub type LinkerResult<T> = Result<T, LinkerError>;
 
-impl TryFrom<&str> for LinkerError {
-    type Error = InternalError;
-
-    fn try_from(value: &str) -> Result<Self, <Self as TryFrom<&str>>::Error> {
-        let (name, param) = parse_enum(value)?;
-        match name {
-            "Loader" => Ok(LinkerError::Loader(LoaderError::try_from(param)?)),
-            _ => Err(InternalError::Error(format!(
-                "Unknown (or unimplemented) LinkerError variant: {}",
-                name
-            ))),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Linker {
     modules: HashMap<Name, Box<ModuleDescriptor>>,
 }
 
+async fn do_load(
+    loader: FileLoader,
+    name: Name,
+    sender: UnboundedSender<LoaderResult<ModuleDescriptor>>,
+) {
+    let descriptor = loader.load_module(name).await;
+    sender.send(descriptor).unwrap();
+}
+
 impl Linker {
     pub async fn bootstrap(loader: FileLoader) -> LinkerResult<Linker> {
-        let mut still_to_load = vec![Name::from("main")];
-        let mut modules = HashMap::new();
-        while let Some(module_name) = still_to_load.pop() {
-            if modules.contains_key(&module_name) {
-                continue;
-            }
+        let (sender, mut receiver) = unbounded_channel::<LoaderResult<ModuleDescriptor>>();
+        let mut modules: HashMap<Name, Box<ModuleDescriptor>> = HashMap::new();
+        let main: Name = "main".into();
+        let mut loading = HashSet::from([main]);
 
-            let descriptor = loader.load_module(module_name).await?;
-            still_to_load.append(&mut descriptor.module().imports.clone());
-            modules.insert(module_name, Box::new(descriptor));
+        tokio::spawn(do_load(loader.clone(), main, sender.clone()));
+
+        while let Some(descriptor) = receiver.recv().await {
+            let descriptor = descriptor?;
+            let name = descriptor.module().package;
+            loading.remove(&name);
+            let requirements = descriptor.module().imports.clone();
+            modules.insert(name, Box::new(descriptor));
+
+            for name in requirements {
+                if modules.contains_key(&name) || loading.contains(&name) {
+                    continue;
+                }
+
+                loading.insert(name);
+                tokio::spawn(do_load(loader.clone(), name, sender.clone()));
+            }
+            if loading.is_empty() {
+                break;
+            }
         }
+
         Ok(Linker { modules })
     }
 
