@@ -1,8 +1,9 @@
 use crate::func::SourceFunction;
 use crate::name::Name;
-use crate::{expect_rule, AstError, AstResult};
+use crate::{AstError, AstResult, Parseable};
 use gor_parse::Rule;
-use pest::iterators::{Pair, Pairs};
+use pest::iterators::Pairs;
+use pest::Span;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
@@ -14,31 +15,11 @@ pub struct SourceModule<'i> {
     functions: HashMap<Name, Box<SourceFunction<'i>>>,
 }
 
-impl<'s: 'i, 'i> TryFrom<Pairs<'s, Rule>> for SourceModule<'i> {
-    type Error = AstError;
+impl<'s: 'i, 'i> Parseable<'s> for SourceModule<'i> {
+    const RULE: Rule = Rule::module;
 
-    fn try_from(mut pairs: Pairs<'s, Rule>) -> AstResult<Self> {
-        let pair = pairs.next().ok_or(AstError::InvalidState(
-            "Expected to get a module, but found nothing to parse",
-        ))?;
-        let item: Result<SourceModule<'i>, AstError> = SourceModule::try_from(pair);
-        if let Some(pair) = pairs.next() {
-            Err(AstError::InvalidStateString(format!(
-                "Expected to consume all of the parse but {:?} remained",
-                pair.as_str()
-            )))
-        } else {
-            item
-        }
-    }
-}
-
-impl<'s: 'i, 'i> TryFrom<Pair<'s, Rule>> for SourceModule<'i> {
-    type Error = AstError;
-
-    fn try_from(module: Pair<'s, Rule>) -> AstResult<Self> {
-        expect_rule(&module, Rule::module)?;
-        primary(module)
+    fn build(_span: &Span<'s>, pairs: Pairs<'s, Rule>) -> AstResult<Self> {
+        primary(pairs)
     }
 }
 
@@ -48,14 +29,11 @@ impl<'i> SourceModule<'i> {
     }
 }
 
-fn primary<'s: 'i, 'i>(module: Pair<'s, Rule>) -> AstResult<SourceModule<'i>> {
-    expect_rule(&module, Rule::module)?;
-
-    let inner: Pairs<'s, Rule> = module.into_inner();
+fn primary<'s: 'i, 'i>(module: Pairs<'s, Rule>) -> AstResult<SourceModule<'i>> {
     let mut package = None;
     let mut imports = vec![];
     let mut functions: HashMap<Name, Box<SourceFunction<'i>>> = HashMap::new();
-    for pair in inner {
+    for pair in module {
         match pair.as_rule() {
             Rule::package => {
                 let name = pair
@@ -80,7 +58,7 @@ fn primary<'s: 'i, 'i>(module: Pair<'s, Rule>) -> AstResult<SourceModule<'i>> {
                 imports.push(Name::from(name.as_str()));
             }
             Rule::func => {
-                let func = SourceFunction::try_from(pair)?;
+                let func = SourceFunction::descend(pair)?;
                 functions.insert(func.name, Box::new(func));
             }
             Rule::EOI => {}

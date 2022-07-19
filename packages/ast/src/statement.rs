@@ -1,7 +1,7 @@
 use crate::expression::Expression;
-use crate::{expect_rule, AstError, AstResult, Located, Parseable};
+use crate::{AstError, AstResult, Located, Parseable};
 use gor_parse::Rule;
-use pest::iterators::Pair;
+use pest::iterators::Pairs;
 use pest::Span;
 
 #[derive(Debug)]
@@ -18,13 +18,12 @@ pub struct Statement<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for Statement<'i> {
-    type Error = AstError;
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::statement)?;
-        let span = pair.as_span();
+impl<'i> Parseable<'i> for Statement<'i> {
+    const RULE: Rule = Rule::statement;
+
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Self> {
         let debug_expr = span.as_str().to_string();
-        let mut inner = pair.into_inner();
+        let mut inner = pairs;
         let next = inner
             .next()
             .ok_or(AstError::InvalidState("No parameters in signature"))?;
@@ -42,7 +41,7 @@ impl<'i> TryFrom<Pair<'i, Rule>> for Statement<'i> {
         };
         Ok(Statement {
             inner: inner_statement,
-            span,
+            span: span.clone(),
         })
     }
 }

@@ -2,6 +2,7 @@ use crate::{InnerModuleDescriptor, Loader, LoaderError, LoaderResult, ModuleDesc
 use async_trait::async_trait;
 use gor_ast::module::SourceModule;
 use gor_ast::name::Name;
+use gor_ast::Parseable;
 use gor_parse::{parse, Rule};
 use std::path::PathBuf;
 use tokio::fs::File;
@@ -20,7 +21,7 @@ impl FileLoader {
         let descriptor = InnerModuleDescriptor::try_new(input, |input| {
             parse(Rule::module, input).map_or_else(
                 |e| Err(LoaderError::ParseError(e)),
-                |p| SourceModule::try_from(p).map_err(Into::into),
+                |p| SourceModule::parse(p).map_err(Into::into),
             )
         })?;
         if descriptor.borrow_dependent().package == module {

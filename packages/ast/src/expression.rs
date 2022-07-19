@@ -87,7 +87,7 @@ fn next_to_inner(next: Pair<Rule>) -> AstResult<InnerExpression> {
         }
         Rule::number => InnerExpression::Number(next.as_str().parse()?),
         Rule::expression => Expression::descend(next)?.inner,
-        Rule::name => InnerExpression::Name(next.try_into()?),
+        Rule::name => InnerExpression::Name(Name::descend(next)?),
         Rule::unitary_op => InnerExpression::UniOp {
             op: UniOp::Negate,
             exp: Box::new(Expression::parse(next.into_inner())?),

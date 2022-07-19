@@ -1,9 +1,9 @@
 use crate::name::Name;
 use crate::statement::Statement;
-use crate::{expect_rule, AstError, AstResult, Located};
+use crate::{expect_rule, AstError, AstResult, Located, Parseable};
 use gor_core::{Function, Member};
 use gor_parse::Rule;
-use pest::iterators::Pair;
+use pest::iterators::Pairs;
 use pest::Span;
 
 #[allow(unused)]
@@ -15,32 +15,31 @@ pub struct SourceFunction<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for SourceFunction<'i> {
-    type Error = AstError;
+impl<'i> Parseable<'i> for SourceFunction<'i> {
+    const RULE: Rule = Rule::func;
 
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        let span = pair.as_span();
-        let mut inner = pair.into_inner();
-        let next = inner
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Self> {
+        let mut pairs = pairs;
+        let next = pairs
             .next()
             .ok_or(AstError::InvalidState("No name in func"))?;
         expect_rule(&next, Rule::name)?;
-        let name = next.try_into()?;
-        let next = inner
+        let name = Name::descend(next)?;
+        let next = pairs
             .next()
             .ok_or(AstError::InvalidState("No params in func"))?;
         expect_rule(&next, Rule::signature)?;
-        let signature = next.try_into()?;
-        let next = inner
+        let signature = Signature::descend(next)?;
+        let next = pairs
             .next()
             .ok_or(AstError::InvalidState("No body in func"))?;
         expect_rule(&next, Rule::block)?;
-        let body = next.try_into()?;
+        let body = Body::descend(next)?;
         Ok(SourceFunction {
             name,
             signature,
             body,
-            span,
+            span: span.clone(),
         })
     }
 }
@@ -53,10 +52,10 @@ pub struct Parameter<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for Parameter<'i> {
-    type Error = AstError;
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::param)?;
+impl<'i> Parseable<'i> for Parameter<'i> {
+    const RULE: Rule = Rule::param;
+
+    fn build(_span: &Span<'i>, _pairs: Pairs<'i, Rule>) -> AstResult<Self> {
         unimplemented!("Nothing needs parameters yet")
     }
 }
@@ -74,17 +73,17 @@ pub struct Parameters<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for Parameters<'i> {
-    type Error = AstError;
+impl<'i> Parseable<'i> for Parameters<'i> {
+    const RULE: Rule = Rule::params;
 
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::params)?;
-        let span = pair.as_span();
-        let parameters = pair
-            .into_inner()
-            .map(Parameter::try_from)
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Self> {
+        let parameters = pairs
+            .map(Parameter::descend)
             .collect::<AstResult<Vec<Parameter>>>()?;
-        Ok(Self { span, parameters })
+        Ok(Self {
+            span: span.clone(),
+            parameters,
+        })
     }
 }
 
@@ -101,18 +100,19 @@ pub struct Signature<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for Signature<'i> {
-    type Error = AstError;
+impl<'i> Parseable<'i> for Signature<'i> {
+    const RULE: Rule = Rule::signature;
 
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::signature)?;
-        let span = pair.as_span();
-        let mut inner = pair.into_inner();
-        let next = inner
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Self> {
+        let mut pairs = pairs;
+        let next = pairs
             .next()
             .ok_or(AstError::InvalidState("No parameters in signature"))?;
-        let parameters = Parameters::try_from(next)?;
-        Ok(Self { span, parameters })
+        let parameters = Parameters::descend(next)?;
+        Ok(Self {
+            span: span.clone(),
+            parameters,
+        })
     }
 }
 
@@ -129,17 +129,17 @@ pub struct Body<'i> {
     span: Span<'i>,
 }
 
-impl<'i> TryFrom<Pair<'i, Rule>> for Body<'i> {
-    type Error = AstError;
-    fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::block)?;
-        let span = pair.as_span();
+impl<'i> Parseable<'i> for Body<'i> {
+    const RULE: Rule = Rule::block;
 
-        let inner = pair.into_inner();
-        let statements = inner
-            .map(Statement::try_from)
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Self> {
+        let statements = pairs
+            .map(Statement::descend)
             .collect::<AstResult<Vec<Statement>>>()?;
-        Ok(Body { statements, span })
+        Ok(Body {
+            statements,
+            span: span.clone(),
+        })
     }
 }
 

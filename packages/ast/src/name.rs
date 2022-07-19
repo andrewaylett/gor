@@ -1,7 +1,8 @@
-use crate::{expect_rule, AstError, AstResult};
+use crate::{AstResult, Parseable};
 use gor_core::interned_string::InternedString;
 use gor_parse::Rule;
-use pest::iterators::Pair;
+use pest::iterators::{Pair, Pairs};
+use pest::Span;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::ops::Deref;
@@ -52,11 +53,14 @@ impl From<&str> for Name {
     }
 }
 
-impl TryFrom<Pair<'_, Rule>> for Name {
-    type Error = AstError;
+impl Parseable<'_> for Name {
+    const RULE: Rule = Rule::name;
 
-    fn try_from(pair: Pair<Rule>) -> AstResult<Self> {
-        expect_rule(&pair, Rule::name)?;
+    fn build(span: &Span<'_>, _pairs: Pairs<'_, Rule>) -> AstResult<Self> {
+        Ok(span.as_str().into())
+    }
+
+    fn descend(pair: Pair<'_, Rule>) -> AstResult<Self> {
         Ok(pair.as_str().into())
     }
 }
