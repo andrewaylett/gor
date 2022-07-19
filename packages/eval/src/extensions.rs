@@ -19,7 +19,7 @@ impl BinOpExt for BinOp {
     }
 
     fn evaluate(&self, left: Value, right: Value) -> EvalResult {
-        self.static_apply(left, right).map_err(Into::into)
+        self.static_apply(left, right)
     }
 }
 

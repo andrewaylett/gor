@@ -93,3 +93,6 @@ test_eval_int!(xor, 6 ^ 10);
 test_eval!(bit_nand, "6 &^ 10", Value::Int(4));
 
 test_eval!(bit_xor, "6 ^ 10", Value::Int(12));
+
+test_eval!(log_and, "1 && 1", Value::Boolean(true));
+test_eval!(log_or, "0 || 1", Value::Boolean(true));

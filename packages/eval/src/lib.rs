@@ -267,9 +267,15 @@ impl Value {
 /// or any async calls.
 pub fn try_static_eval<'i>(exp: &'i Expression<'i>) -> EvalResult {
     match &exp.inner {
-        InnerExpression::BinOp { left, op, right } => {
-            Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
-        }
+        InnerExpression::BinOp { left, op, right } => match op {
+            BinOp::LogicalAnd => Ok(Value::Boolean(
+                try_static_eval(left)?.as_bool()? && try_static_eval(right)?.as_bool()?,
+            )),
+            BinOp::LogicalOr => Ok(Value::Boolean(
+                try_static_eval(left)?.as_bool()? || try_static_eval(right)?.as_bool()?,
+            )),
+            op => Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?),
+        },
         InnerExpression::String(_) | InnerExpression::Name(_) | InnerExpression::Call { .. } => {
             Err(RuntimeError::StaticEvaluationFailure(
                 exp.span.as_str().to_string(),
