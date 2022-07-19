@@ -20,9 +20,12 @@ pub enum BinOp {
     Shr,
     BitAnd,
     BitClear,
+    LogicalOr,
+    LogicalAnd,
+    Dot,
 }
 
-const fn const_try_from(value: Rule) -> AstResult<BinOp> {
+fn const_try_from(value: Rule, pair: String) -> AstResult<BinOp> {
     Ok(match value {
         Rule::eq => BinOp::Eq,
         Rule::neq => BinOp::Neq,
@@ -41,7 +44,10 @@ const fn const_try_from(value: Rule) -> AstResult<BinOp> {
         Rule::shr => BinOp::Shr,
         Rule::bit_and => BinOp::BitAnd,
         Rule::bit_clear => BinOp::BitClear,
-        r => return Err(AstError::InvalidRule("BinOp", r)),
+        Rule::bool_and => BinOp::LogicalAnd,
+        Rule::bool_or => BinOp::LogicalOr,
+        Rule::dot => BinOp::Dot,
+        r => return Err(AstError::InvalidRuleClass("BinOp", r, pair)),
     })
 }
 
@@ -49,6 +55,6 @@ impl TryFrom<Rule> for BinOp {
     type Error = AstError;
 
     fn try_from(value: Rule) -> Result<Self, Self::Error> {
-        const_try_from(value)
+        const_try_from(value, format!("Rule::{:?}", value))
     }
 }

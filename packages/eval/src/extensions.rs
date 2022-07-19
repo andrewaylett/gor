@@ -5,7 +5,6 @@ use futures::future::join_all;
 use gor_ast::binary_op::BinOp;
 use gor_ast::expression::{Expression, InnerExpression};
 use gor_ast::func::SourceFunction;
-use gor_ast::short_circuit_op::ShortCircuitOp;
 use gor_ast::unitary_op::UniOp;
 use tokio::join;
 
@@ -36,35 +35,6 @@ pub(crate) trait ShortCircuitOpExt {
 }
 
 #[async_trait]
-impl ShortCircuitOpExt for ShortCircuitOp {
-    async fn evaluate<'i>(
-        &self,
-        left: &Expression<'i>,
-        right: &Expression<'i>,
-        context: &dyn ExecutionContext,
-    ) -> EvalResult {
-        let left = left.evaluate(context).await?;
-        let left = left.as_bool()?;
-        match self {
-            ShortCircuitOp::LogicalOr => Ok(Value::Boolean(
-                left || right.evaluate(context).await?.as_bool()?,
-            )),
-            ShortCircuitOp::LogicalAnd => Ok(Value::Boolean(
-                left && right.evaluate(context).await?.as_bool()?,
-            )),
-        }
-    }
-
-    fn static_apply(&self, left: Value, right: impl FnOnce() -> EvalResult) -> EvalResult {
-        let left = left.as_bool()?;
-        match self {
-            ShortCircuitOp::LogicalOr => Ok(Value::Boolean(left || right()?.as_bool()?)),
-            ShortCircuitOp::LogicalAnd => Ok(Value::Boolean(left && right()?.as_bool()?)),
-        }
-    }
-}
-
-#[async_trait]
 pub(crate) trait Evaluable {
     async fn evaluate(&self, context: &dyn ExecutionContext) -> EvalResult;
 }
@@ -82,9 +52,6 @@ impl<'i> Evaluable for Expression<'i> {
                 let right = right.evaluate(context);
                 let (left, right) = join!(left, right);
                 op.evaluate(left?, right?)?
-            }
-            InnerExpression::ShortCircuitOp { left, op, right } => {
-                op.evaluate(left, right, context).await?
             }
             InnerExpression::String(s) => Value::String(s.to_owned()),
             InnerExpression::Number(n) => Value::Int(*n),

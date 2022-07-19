@@ -46,22 +46,6 @@ pub enum LoaderError {
     ModuleNotFound(Name),
 }
 
-impl PartialEq for LoaderError {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (LoaderError::IOError(s), LoaderError::IOError(o)) => {
-                let s = format!("{}", s);
-                let o = format!("{}", o);
-                s == o
-            }
-            (LoaderError::AstError(s), LoaderError::AstError(o)) => s == o,
-            (LoaderError::ParseError(s), LoaderError::ParseError(o)) => s == o,
-            (LoaderError::ModuleNotFound(s), LoaderError::ModuleNotFound(o)) => s == o,
-            _ => false,
-        }
-    }
-}
-
 pub type LoaderResult<T> = Result<T, LoaderError>;
 
 impl TryFrom<&str> for LoaderError {

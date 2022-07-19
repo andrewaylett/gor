@@ -22,10 +22,11 @@ impl<'s: 'i, 'i> TryFrom<Pairs<'s, Rule>> for SourceModule<'i> {
             "Expected to get a module, but found nothing to parse",
         ))?;
         let item: Result<SourceModule<'i>, AstError> = SourceModule::try_from(pair);
-        if pairs.next().is_some() {
-            Err(AstError::InvalidState(
-                "Expected to consume all of the parse",
-            ))
+        if let Some(pair) = pairs.next() {
+            Err(AstError::InvalidStateString(format!(
+                "Expected to consume all of the parse but {:?} remained",
+                pair.as_str()
+            )))
         } else {
             item
         }
@@ -83,7 +84,13 @@ fn primary<'s: 'i, 'i>(module: Pair<'s, Rule>) -> AstResult<SourceModule<'i>> {
                 functions.insert(func.name, Box::new(func));
             }
             Rule::EOI => {}
-            r => return Err(AstError::InvalidRule("module contents", r)),
+            r => {
+                return Err(AstError::InvalidRuleClass(
+                    "module contents",
+                    r,
+                    pair.as_str().to_string(),
+                ))
+            }
         }
     }
     match package {

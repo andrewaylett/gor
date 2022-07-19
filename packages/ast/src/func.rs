@@ -1,4 +1,5 @@
 use crate::name::Name;
+use crate::statement::Statement;
 use crate::{expect_rule, AstError, AstResult, Located};
 use gor_core::{Function, Member};
 use gor_parse::Rule;
@@ -123,6 +124,8 @@ impl<'i> Located<'i> for Signature<'i> {
 
 #[derive(Debug)]
 pub struct Body<'i> {
+    #[allow(dead_code)]
+    statements: Vec<Statement<'i>>,
     span: Span<'i>,
 }
 
@@ -131,7 +134,12 @@ impl<'i> TryFrom<Pair<'i, Rule>> for Body<'i> {
     fn try_from(pair: Pair<'i, Rule>) -> AstResult<Self> {
         expect_rule(&pair, Rule::block)?;
         let span = pair.as_span();
-        Ok(Body { span })
+
+        let inner = pair.into_inner();
+        let statements = inner
+            .map(Statement::try_from)
+            .collect::<AstResult<Vec<Statement>>>()?;
+        Ok(Body { statements, span })
     }
 }
 

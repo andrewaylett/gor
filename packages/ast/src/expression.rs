@@ -1,9 +1,9 @@
 use crate::binary_op::BinOp;
 use crate::name::Name;
-use crate::short_circuit_op::ShortCircuitOp;
 use crate::unitary_op::UniOp;
-use crate::AstResult;
 use crate::{expect_rule, AstError};
+use crate::{AstErrorContext, AstResult, Parseable};
+use backtrace::Backtrace;
 use gor_parse::Rule;
 use gor_parse::PRECEDENCE;
 use pest::iterators::{Pair, Pairs};
@@ -30,11 +30,6 @@ pub enum InnerExpression<'i> {
         op: BinOp,
         right: Box<Expression<'i>>,
     },
-    ShortCircuitOp {
-        left: Box<Expression<'i>>,
-        op: ShortCircuitOp,
-        right: Box<Expression<'i>>,
-    },
     String(String),
     Number(i64),
     Name(Name),
@@ -48,38 +43,16 @@ pub enum InnerExpression<'i> {
     },
 }
 
-impl<'i> TryFrom<Pairs<'i, Rule>> for Expression<'i> {
-    type Error = AstError;
-
-    fn try_from(mut pairs: Pairs<'i, Rule>) -> AstResult<Self> {
-        let expression = pairs.next().ok_or(AstError::InvalidState(
-            "Expected to get an expression, but found nothing to parse",
-        ))?;
-        let span = expression.as_span();
-        let item = InnerExpression::try_from(expression);
-        if pairs.next().is_some() {
-            Err(AstError::InvalidState(
-                "Expected to consume all of the parse",
-            ))
-        } else {
-            Ok(Expression::new(span, item?))
-        }
-    }
-}
-
-impl<'i> TryFrom<Pair<'i, Rule>> for InnerExpression<'i> {
-    type Error = AstError;
-
-    fn try_from(expression: Pair<'i, Rule>) -> AstResult<Self> {
-        expect_rule(&expression, Rule::expression)?;
-        let span = expression.as_span();
-        let item = term_precedence(expression.into_inner())?;
-        if span == item.span {
-            Ok(item.inner)
+impl<'i> Parseable<'i> for Expression<'i> {
+    const RULE: Rule = Rule::expression;
+    fn build(span: &Span<'i>, pairs: Pairs<'i, Rule>) -> AstResult<Expression<'i>> {
+        let exp = term_precedence(pairs)?;
+        if &exp.span == span {
+            Ok(exp)
         } else {
             Err(AstError::InvalidStateString(format!(
                 "Expected the parsed expression {:?} to cover the input {:?}",
-                item.span, span
+                exp.span, span
             )))
         }
     }
@@ -96,7 +69,13 @@ fn term_primary(pair: Pair<Rule>) -> AstResult<Expression> {
     let next = inner
         .peek()
         .ok_or(AstError::InvalidState("found term without inner pair"))?;
-    let expr: InnerExpression = match next.as_rule() {
+    let rule = next.as_rule();
+    let expr: InnerExpression = next_to_inner(next).with_span(&span).with_rule(rule)?;
+    Ok(Expression::new(span, expr))
+}
+
+fn next_to_inner(next: Pair<Rule>) -> AstResult<InnerExpression> {
+    Ok(match next.as_rule() {
         Rule::string => {
             let string_inner = next
                 .into_inner()
@@ -107,15 +86,12 @@ fn term_primary(pair: Pair<Rule>) -> AstResult<Expression> {
             InnerExpression::String(string_inner.as_str().to_owned())
         }
         Rule::number => InnerExpression::Number(next.as_str().parse()?),
-        Rule::expression => InnerExpression::try_from(next)?,
+        Rule::expression => Expression::descend(next)?.inner,
         Rule::name => InnerExpression::Name(next.try_into()?),
-        Rule::unitary_op => {
-            let expr = next.into_inner();
-            InnerExpression::UniOp {
-                op: UniOp::Negate,
-                exp: Box::new(Expression::try_from(expr)?),
-            }
-        }
+        Rule::unitary_op => InnerExpression::UniOp {
+            op: UniOp::Negate,
+            exp: Box::new(Expression::parse(next.into_inner())?),
+        },
         Rule::call => {
             let mut call = next.into_inner();
             let name = call
@@ -123,19 +99,19 @@ fn term_primary(pair: Pair<Rule>) -> AstResult<Expression> {
                 .ok_or(AstError::InvalidState("Found a call with no name"))?;
             expect_rule(&name, Rule::name)?;
             let name: Name = name.as_str().into();
-            let parameters = call.try_fold(vec![], |mut result, expression| {
-                let span = expression.as_span();
-                result.push(Expression::new(
-                    span,
-                    InnerExpression::try_from(expression)?,
-                ));
-                Ok(result) as AstResult<Vec<Expression>>
-            })?;
+            let parameters: Vec<Expression> = call
+                .map(|expression| Ok(Expression::descend(expression)?) as AstResult<Expression>)
+                .collect::<AstResult<_>>()?;
             InnerExpression::Call { name, parameters }
         }
-        r => return Err(AstError::InvalidRule("term", r)),
-    };
-    Ok(Expression::new(span, expr))
+        r => {
+            return Err(AstError::RuleMismatch {
+                expected: Rule::term,
+                found: r,
+                trace: Box::new(Backtrace::new()),
+            })
+        }
+    })
 }
 
 fn term_infix<'i>(
@@ -143,25 +119,21 @@ fn term_infix<'i>(
     op: Pair<'i, Rule>,
     right: AstResult<Expression<'i>>,
 ) -> AstResult<Expression<'i>> {
-    let left = left?;
-    let right = right?;
+    let left = left.with_rule(op.as_rule())?;
+    let right = right.with_rule(op.as_rule())?;
     let start = left.span.start_pos();
     let end = right.span.end_pos();
     let span = start.span(&end);
+    let expr = op.as_str().to_string();
     let op = op.as_rule();
     let left = Box::new(left);
     let right = Box::new(right);
     if let Ok(op) = op.try_into() {
         Ok(Expression::new(
             span,
-            InnerExpression::ShortCircuitOp { left, op, right },
-        ))
-    } else if let Ok(op) = op.try_into() {
-        Ok(Expression::new(
-            span,
             InnerExpression::BinOp { left, op, right },
         ))
     } else {
-        Err(AstError::InvalidRule("ShortCircuitOp or BinOp", op))
+        Err(AstError::InvalidRuleClass("BinOp", op, expr))
     }
 }

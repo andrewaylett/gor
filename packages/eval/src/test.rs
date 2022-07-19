@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use gor_ast::expression::Expression;
+use gor_ast::Parseable;
 use pest::iterators::Pairs;
 use pretty_assertions::assert_eq;
 
@@ -44,7 +45,7 @@ macro_rules! test_static_eval {
         #[test]
         fn $func_name() -> Result<()> {
             let p = parse_expression($input)?;
-            let e = Expression::try_from(p)?;
+            let e = Expression::parse(p)?;
             assert_static_expression($result, &e);
             Ok(())
         }
@@ -56,7 +57,7 @@ macro_rules! test_eval_inner {
         #[tokio::test]
         async fn $func_name() -> Result<()> {
             let p = parse_expression($input)?;
-            let e = Expression::try_from(p)?;
+            let e = Expression::parse(p)?;
             assert_expression($result, &e).await;
             Ok(())
         }

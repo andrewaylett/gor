@@ -31,10 +31,10 @@ use thiserror::Error;
 
 use gor_ast::expression::{Expression, InnerExpression};
 use gor_ast::name::Name;
-use gor_parse::{parse, ParseError, Rule};
+use gor_parse::ParseError;
 use RuntimeError::{TypeMismatch, TypeOpMismatch};
 
-use crate::extensions::{Evaluable, ShortCircuitOpExt, UniOpExt};
+use crate::extensions::{Evaluable, UniOpExt};
 use extensions::BinOpExt;
 use gor_ast::AstError;
 use gor_core::parse_error::InternalError;
@@ -221,6 +221,12 @@ impl Value {
                     BinOp::Shr => Value::Int(left >> right),
                     BinOp::BitAnd => Value::Int(left & right),
                     BinOp::BitClear => Value::Int(left & !right),
+                    _ => {
+                        return Err(TypeOpMismatch {
+                            op,
+                            r#type: self.as_type(),
+                        })
+                    }
                 })
             }
             Type::Boolean => {
@@ -237,6 +243,8 @@ impl Value {
                     BinOp::BitXor => Value::Boolean(left ^ right),
                     BinOp::BitAnd => Value::Boolean(left & right),
                     BinOp::BitClear => Value::Boolean(left & !right),
+                    BinOp::LogicalAnd => Value::Boolean(left && right),
+                    BinOp::LogicalOr => Value::Boolean(left || right),
                     _ => {
                         return Err(TypeOpMismatch {
                             op,
@@ -261,9 +269,6 @@ pub fn try_static_eval<'i>(exp: &'i Expression<'i>) -> EvalResult {
     match &exp.inner {
         InnerExpression::BinOp { left, op, right } => {
             Ok(op.static_apply(try_static_eval(left)?, try_static_eval(right)?)?)
-        }
-        InnerExpression::ShortCircuitOp { left, op, right } => {
-            Ok(op.static_apply(try_static_eval(left)?, || try_static_eval(right))?)
         }
         InnerExpression::String(_) | InnerExpression::Name(_) | InnerExpression::Call { .. } => {
             Err(RuntimeError::StaticEvaluationFailure(
@@ -308,27 +313,6 @@ lazy_static! {
         m.insert("print".into(), Value::Intrinsic(Intrinsic::Print));
         GlobalExecutionContext { globals: m }
     };
-}
-
-/// Parse and execute the given Go ~~module~~ expression
-///
-/// ```
-/// # use gor_eval::EvalResult;
-/// # async fn try_main() -> EvalResult {
-/// use gor_eval::{Value, exec};
-/// let res = exec("2 * 24").await?;
-/// assert_eq!(Value::Int(48), res);
-/// # Ok(res) // returning from try_main
-/// # }
-/// # #[tokio::main]
-/// # async fn main() {
-/// #    try_main().await.unwrap();
-/// # }
-/// ```
-pub async fn exec(input: &str) -> EvalResult {
-    let p = parse(Rule::expression, input)?;
-    let e = Expression::try_from(p)?;
-    e.evaluate(&*GLOBAL_CONTEXT).await
 }
 
 #[derive(Debug, Default)]
