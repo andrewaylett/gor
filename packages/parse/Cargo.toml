@@ -9,7 +9,7 @@ description = "A Pest-based parser for Go modules"
 repository = "https://github.com/andrewaylett/gor"
 
 [dependencies]
-pest = "2.1.3"
+pest = "2.2.1"
 pest_derive = "2.1.0"
 
 thiserror = "1.0.31"
