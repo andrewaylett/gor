@@ -25,5 +25,5 @@ futures = "0.3.21"
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"
-anyhow = "1.0.58"
+anyhow = "1.0.59"
 pest = "2.2.1"
