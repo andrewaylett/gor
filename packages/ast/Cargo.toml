@@ -20,4 +20,4 @@ backtrace = "0.3.66"
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"
-anyhow = "1.0.60"
+anyhow = "1.0.61"
