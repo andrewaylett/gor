@@ -13,4 +13,4 @@ regex = "1.6.0"
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"
-anyhow = "1.0.61"
+anyhow = "1.0.62"
