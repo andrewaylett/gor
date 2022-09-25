@@ -11,7 +11,7 @@ gor-parse = { version="0.1.0", path="../parse" }
 gor-core = { version="0.1.0", path="../core" }
 gor-loader = { version="0.1.0", path="../loader" }
 
-thiserror = "1.0.35"
+thiserror = "1.0.36"
 tokio = { version = "^1.21.1", features = ["full", "tracing"] }
 async-trait = "0.1.57"
 self_cell = "0.10.2"
