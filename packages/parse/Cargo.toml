@@ -10,7 +10,7 @@ repository = "https://github.com/andrewaylett/gor"
 
 [dependencies]
 pest = "2.4.0"
-pest_derive = "2.3.1"
+pest_derive = "2.4.0"
 
 thiserror = "1.0.37"
 
