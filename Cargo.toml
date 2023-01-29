@@ -21,7 +21,7 @@ gor-loader = { version="0.1.0", path="packages/loader" }
 gor-core = { version="0.1.0", path="packages/core" }
 gor-linker = { version="0.1.0", path="packages/linker" }
 
-tokio = { version = "^1.24.2", features = ["full", "tracing"] }
+tokio = { version = "^1.25.0", features = ["full", "tracing"] }
 pest = "2.5.4"
 pest_derive = "2.5.4"
 
