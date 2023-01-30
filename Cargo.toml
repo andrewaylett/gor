@@ -29,7 +29,7 @@ anyhow = "1.0.68"
 thiserror = "1.0.38"
 
 lazy_static = "1.4.0"
-futures = "0.3.25"
+futures = "0.3.26"
 
 structopt = "0.3.26"
 
