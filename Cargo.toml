@@ -25,7 +25,7 @@ tokio = { version = "^1.25.0", features = ["full", "tracing"] }
 pest = "2.5.4"
 pest_derive = "2.5.4"
 
-anyhow = "1.0.68"
+anyhow = "1.0.69"
 thiserror = "1.0.38"
 
 lazy_static = "1.4.0"
