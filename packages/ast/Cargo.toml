@@ -12,7 +12,7 @@ repository = "https://github.com/andrewaylett/gor"
 gor-parse = { version="0.1.0", path="../parse" }
 gor-core = { version="0.1.0", path="../core" }
 
-pest = "2.5.4"
+pest = "2.5.5"
 
 thiserror = "1.0.38"
 
