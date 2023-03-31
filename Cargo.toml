@@ -23,7 +23,7 @@ gor-linker = { version="0.1.0", path="packages/linker" }
 
 tokio = { version = "^1.27.0", features = ["full", "tracing"] }
 pest = "2.5.7"
-pest_derive = "2.5.6"
+pest_derive = "2.5.7"
 
 anyhow = "1.0.70"
 thiserror = "1.0.40"
