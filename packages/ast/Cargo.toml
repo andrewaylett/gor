@@ -16,7 +16,7 @@ pest = "2.7.0"
 
 thiserror = "1.0.40"
 
-backtrace = "0.3.67"
+backtrace = "0.3.68"
 
 [dev-dependencies]
 pretty_assertions = "1.3.0"
