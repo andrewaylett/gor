@@ -38,4 +38,4 @@ pretty_assertions = "1.4.0"
 
 [build-dependencies]
 lazy_static = "1.4.0"
-regex = "1.9.0"
+regex = "1.9.1"
