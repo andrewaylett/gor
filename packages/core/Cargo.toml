@@ -9,7 +9,7 @@ edition = "2021"
 thiserror = "1.0.44"
 
 lazy_static = "1.4.0"
-regex = "1.9.2"
+regex = "1.9.3"
 
 [dev-dependencies]
 pretty_assertions = "1.4.0"
