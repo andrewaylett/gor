@@ -12,7 +12,7 @@ repository = "https://github.com/andrewaylett/gor"
 pest = "2.7.2"
 pest_derive = "2.7.2"
 
-thiserror = "1.0.44"
+thiserror = "1.0.46"
 
 lazy_static = "1.4.0"
 
