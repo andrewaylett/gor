@@ -14,7 +14,7 @@ gor-core = { version="0.1.0", path="../core" }
 
 pest = "2.7.2"
 
-thiserror = "1.0.46"
+thiserror = "1.0.47"
 
 backtrace = "0.3.68"
 
