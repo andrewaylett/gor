@@ -19,7 +19,7 @@ tokio = { version = "^1.29.1", features = ["full", "tracing"] }
 
 thiserror = "1.0.48"
 
-async-trait = "0.1.73"
+async-trait = "0.1.74"
 lazy_static = "1.4.0"
 futures = "0.3.28"
 
