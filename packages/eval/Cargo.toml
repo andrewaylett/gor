@@ -17,7 +17,7 @@ gor-loader = { version="0.1.0", path="../loader" }
 
 tokio = { version = "^1.29.1", features = ["full", "tracing"] }
 
-thiserror = "1.0.48"
+thiserror = "1.0.50"
 
 async-trait = "0.1.74"
 lazy_static = "1.4.0"
