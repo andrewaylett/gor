@@ -14,4 +14,4 @@ gor-loader = { version="0.1.0", path="../loader" }
 thiserror = "1.0.50"
 tokio = { version = "^1.29.1", features = ["full", "tracing"] }
 async-trait = "0.1.74"
-self_cell = "1.0.1"
+self_cell = "1.0.2"
